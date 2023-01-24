@@ -1,3 +1,4 @@
+CC=clang
 CPP=clang
 CXX=clang
 SANITIZE=-fsanitize=undefined
@@ -7,7 +8,7 @@ STD=--std=c++17
 LDLIBS=-lstdc++ -lncurses -lubsan
 CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
 
-#implicit rules
+#implicit rules?
 #  %.o : %.cc
 # 	$(CXX) $(CPPFLAGS) $< $(CXXFLAGS) -c -o $@
 #  % : %.o
@@ -15,3 +16,7 @@ CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
 
 %.i : %.cc
 	$(CXX) $(CPPFLAGS) $< $(CXXFLAGS) -E -o $@
+ned : pane.cc ned.cc
+
+clean:
+	rm -f *.o

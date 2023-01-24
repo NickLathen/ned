@@ -1,6 +1,7 @@
 *
 !.gitignore
 !*.cc
+!*.hh
 !Makefile
 !.vscode
 !.vscode/*
