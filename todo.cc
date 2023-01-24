@@ -4,9 +4,9 @@ Changelog:
     Develop Feature Plan:
       MVP
         arrow navigation
+        scrolling a buffer
         character entry (typing)
         character delete (delete / backspace)
-        scrolling
       V1.0
         start from existing file
         save to existing file
@@ -21,4 +21,10 @@ Changelog:
     Develop:
       arrow navigation (buggy)
 
+  2023-01-24
+    Plan:
+    Develop:
+      arrow navigation (use bounds of window)
+      virtual cursor
+      ...scrolling a buffer
 */
