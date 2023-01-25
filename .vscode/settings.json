@@ -46,6 +46,7 @@
     "streambuf": "cpp",
     "typeinfo": "cpp",
     "unistd.h": "c",
-    "filesystem": "cpp"
+    "filesystem": "cpp",
+    "set": "cpp"
   }
 }

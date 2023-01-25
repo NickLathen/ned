@@ -9,32 +9,26 @@ struct EditBuffer {
 };
 
 // points to a specific character in a buffer
-class BufferPosition {
- public:
-  BufferPosition() : row{0}, col{0} {};
-  BufferPosition(size_t r, size_t c) : row{r}, col{c} {};
-  size_t row;
-  size_t col;
-
- private:
+struct BufferPosition {
+  size_t row, col;
 };
 
 class BufferCursor {
  public:
   BufferCursor(WINDOW* window, EditBuffer buf);
   BufferCursor(WINDOW* window, EditBuffer buf, BufferPosition pos);
+  int getX();
+  int getY();
   void walkRight();
   void walkLeft();
   void walkUp();
   void walkDown();
   void moveSet(int x, int y);
-  void drawOffset(const BufferPosition& bufOffset);
-  int getX();
-  int getY();
+  void drawOffset(BufferPosition& bufOffset);
+  void adjustOffset(BufferPosition& bufOffset);
 
  private:
-  WINDOW
-  *window;
+  WINDOW* window;
   BufferPosition position;
   EditBuffer buf;
 };
@@ -51,6 +45,8 @@ class Pane {
   void walkCursorsDown();
   void drawCursors();
   void drawBuffer();
+  void adjustOffset();
+  void setOffset(size_t row, size_t col);
 
  private:
   WINDOW* window;

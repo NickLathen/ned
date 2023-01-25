@@ -5,11 +5,8 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include "log.h"
 #include "pane.hh"
-
-std::ofstream logf;
-#define LOGF logf
-#define LOGFLUSH logf.flush()
 bool quitNed = false;
 
 enum Key { KK_UP, KK_DOWN, KK_J, KK_K, KK_Q, KK_LEFT, KK_RIGHT, KK_COUNT };
@@ -61,8 +58,9 @@ void mainLoop(Pane& pane) {
   if (k != KK_COUNT) {
     if (k == KK_UP || k == KK_DOWN || k == KK_LEFT || k == KK_RIGHT) {
       erase();
-      pane.drawBuffer();
       walkCursors(k, pane);
+      pane.adjustOffset();
+      pane.drawBuffer();
       pane.drawCursors();
     }
     LOGF << "key: " << k << "\r\n";
@@ -90,7 +88,10 @@ int main(int argc, char** argv) {
   }
   signal(SIGINT, signal_callback_handler);
   std::vector<std::string> lines(
-      {"this is a rearendering code.", "is", "a", "test", "yo!", ""});
+      {"this is a rearendering code. this is a relly long line  lolol it will "
+       "require some scrolling probalby something else when switching between "
+       "lines oh lol oh lol yeah.",
+       "is", "a", "test", "yo!"});
   EditBuffer buf{lines};
   // setup ncurses
   WINDOW* w = initscr();
@@ -102,6 +103,7 @@ int main(int argc, char** argv) {
   intrflush(w, false);
   // destroy ncurses
   Pane pane{w, buf};
+  pane.setOffset(0, 2);
   pane.drawBuffer();
   pane.addCursor();
   while (!quitNed) {

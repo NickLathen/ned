@@ -1,11 +1,14 @@
 #include "pane.hh"
 #include <ncurses.h>
+#include <iostream>
+#include "log.h"
 
 BufferCursor::BufferCursor(WINDOW* window, EditBuffer buf)
     : window{window}, position{}, buf{buf} {};
 BufferCursor::BufferCursor(WINDOW* window, EditBuffer buf, BufferPosition pos)
     : window{window}, position{pos}, buf{buf} {};
 void BufferCursor::moveSet(int x, int y) {
+  LOGF << "moveset: " << x << ", " << y << std::endl;
   position.row = y;
   position.col = x;
 }
@@ -106,24 +109,38 @@ void BufferCursor::walkDown() {
     newY = buf.lines.size() - 1;
   moveSet(newX, newY);
 };
-void BufferCursor::drawOffset(const BufferPosition& bufOffset) {
-  if (buf.lines.size() == 0) {
-    mvwchgat(window, 0, 0, 1, A_STANDOUT, 0, nullptr);
-    return;
+void BufferCursor::drawOffset(BufferPosition& bufOffset) {
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  int bufX = getX();
+  int bufY = getY();
+  if (bufX > (int)buf.lines[bufY].size()) {
+    bufX = buf.lines[bufY].size();
   }
-  int x = getX();
-  int y = getY();
-  if (y < 0)
-    y = 0;
-  if (y > (int)buf.lines.size() - 1)
-    y = (int)buf.lines.size() - 1;
-  if (x < 0)
-    x = 0;
-  if (x > (int)buf.lines[y].size())
-    x = buf.lines[y].size();
-  mvwchgat(window, y, x, 1, A_STANDOUT, 0, nullptr);
-}
+  int screenX = bufX - bufOffset.col;
+  int screenY = bufY - bufOffset.row;
+  // ignore offscreen
+  if (screenX < 0 || screenX >= maxX || screenY < 0 || screenY >= maxY)
+    return;
 
+  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+}
+void BufferCursor::adjustOffset(BufferPosition& bufOffset) {
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  int bufX = getX();
+  int bufY = getY();
+  if (bufX > (int)buf.lines[bufY].size()) {
+    bufX = buf.lines[bufY].size();
+  }
+  int screenX = bufX - bufOffset.col;
+  int screenY = bufY - bufOffset.row;
+  if (screenX < 4) {
+    bufOffset.col = std::max(bufX - 4, 0);
+  } else if (screenX >= maxX - 4) {
+    bufOffset.col = bufX - maxX + 5;
+  }
+}
 Pane::Pane(){};
 Pane::Pane(WINDOW* window) : window{window} {};
 Pane::Pane(WINDOW* window, EditBuffer& eb) : window{window}, buf{eb} {};
@@ -157,16 +174,32 @@ void Pane::drawCursors() {
 }
 
 void Pane::drawBuffer() {
+  if (buf.lines.size() == 0)
+    return;
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
-  size_t row = bufOffset.row;
-  size_t bottomEndY = std::min(row + maxY, buf.lines.size());
-  for (; row < bottomEndY; row++) {
-    size_t col = bufOffset.col;
-    size_t rightEndX = std::min(col + maxX, buf.lines[row].size());
-    wmove(window, row, col);
-    for (; col < rightEndX; col++) {
-      waddch(window, buf.lines[row].at(col));
+  int rowOffset = bufOffset.row;
+  int colOffset = bufOffset.col;
+  for (int row = 0; row < maxY; row++) {
+    if (row + rowOffset >= (int)buf.lines.size()) {
+      break;
+    }
+    wmove(window, row, 0);
+    for (int col = 0; col < maxX; col++) {
+      if (col + colOffset >= (int)buf.lines[row].size())
+        break;
+      waddch(window, buf.lines[row + rowOffset].at(col + colOffset));
     }
   }
+}
+
+void Pane::adjustOffset() {
+  if (cursors.size() == 0)
+    return;
+  cursors[0].adjustOffset(bufOffset);
+}
+
+void Pane::setOffset(size_t row, size_t col) {
+  bufOffset.row = row;
+  bufOffset.col = col;
 }
