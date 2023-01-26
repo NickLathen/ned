@@ -5,18 +5,18 @@
 
 // data from file
 struct EditBuffer {
-  std::vector<std::string> lines;
+  std::vector<std::string> lines{};
 };
 
 // points to a specific character in a buffer
 struct BufferPosition {
-  size_t row, col;
+  size_t row{}, col{};
 };
 
 class BufferCursor {
- public:
-  BufferCursor(WINDOW* window, EditBuffer buf);
-  BufferCursor(WINDOW* window, EditBuffer buf, BufferPosition pos);
+public:
+  BufferCursor(WINDOW *window, EditBuffer buf);
+  BufferCursor(WINDOW *window, EditBuffer buf, BufferPosition pos);
   int getX();
   int getY();
   void walkRight();
@@ -24,20 +24,20 @@ class BufferCursor {
   void walkUp();
   void walkDown();
   void moveSet(int x, int y);
-  void drawOffset(BufferPosition& bufOffset);
-  void adjustOffset(BufferPosition& bufOffset);
+  void drawOffset(BufferPosition &bufOffset);
+  void adjustOffset(BufferPosition &bufOffset);
 
- private:
-  WINDOW* window;
+private:
+  WINDOW *window;
   BufferPosition position;
   EditBuffer buf;
 };
 
 class Pane {
- public:
+public:
   Pane();
-  Pane(WINDOW* window);
-  Pane(WINDOW* window, EditBuffer& eb);
+  Pane(WINDOW *window);
+  Pane(WINDOW *window, EditBuffer &eb);
   void addCursor();
   void walkCursorsRight();
   void walkCursorsLeft();
@@ -48,8 +48,8 @@ class Pane {
   void adjustOffset();
   void setOffset(size_t row, size_t col);
 
- private:
-  WINDOW* window;
+private:
+  WINDOW *window;
   EditBuffer buf;
   BufferPosition bufOffset;
   std::vector<BufferCursor> cursors;

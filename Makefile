@@ -1,11 +1,11 @@
 CC=clang
 CPP=clang
 CXX=clang
-SANITIZE=-fsanitize=undefined
+SANITIZE=
 WARNALL=-Wall -Wextra -Wpedantic
 DEBUG=-g
 STD=--std=c++17
-LDLIBS=-lstdc++ -lncurses -lubsan
+LDLIBS=-lstdc++ -lncurses
 CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
 
 #implicit rules?

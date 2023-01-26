@@ -1,71 +1,53 @@
-#include <ncurses.h>
-#include <signal.h>
-#include <time.h>
-#include <unistd.h>
+#include "log.hh"
+#include "pane.hh"
+#include "testdata.hh"
 #include <fstream>
 #include <iostream>
+#include <ncurses.h>
+#include <signal.h>
+#include <sstream>
+#include <time.h>
+#include <unistd.h>
 #include <vector>
-#include "log.h"
-#include "pane.hh"
+
 bool quitNed = false;
 
-enum Key { KK_UP, KK_DOWN, KK_J, KK_K, KK_Q, KK_LEFT, KK_RIGHT, KK_COUNT };
-Key getKeyPress() {
-  int c = getch();
-  if (c == -1)
-    return KK_COUNT;
-  switch (c) {
-    case 'j':
-      return KK_J;
-    case 'k':
-      return KK_K;
-    case 'q':
-      return KK_Q;
-    case KEY_UP:
-      return KK_UP;
-    case KEY_DOWN:
-      return KK_DOWN;
-    case KEY_LEFT:
-      return KK_LEFT;
-    case KEY_RIGHT:
-      return KK_RIGHT;
-  }
-  LOGF << "missing c: " << c << std::endl;
-  return KK_COUNT;
-}
-
-void walkCursors(Key k, Pane& pane) {
+void walkCursors(int k, Pane &pane) {
   switch (k) {
-    case KK_UP:
-      pane.walkCursorsUp();
-      break;
-    case KK_DOWN:
-      pane.walkCursorsDown();
-      break;
-    case KK_LEFT:
-      pane.walkCursorsLeft();
-      break;
-    case KK_RIGHT:
-      pane.walkCursorsRight();
-      break;
-    default:
-      break;
+  case KEY_UP:
+    pane.walkCursorsUp();
+    break;
+  case KEY_DOWN:
+    pane.walkCursorsDown();
+    break;
+  case KEY_LEFT:
+    pane.walkCursorsLeft();
+    break;
+  case KEY_RIGHT:
+    pane.walkCursorsRight();
+    break;
+  default:
+    break;
   }
 }
 
-void mainLoop(Pane& pane) {
-  Key k = getKeyPress();
-  if (k != KK_COUNT) {
-    if (k == KK_UP || k == KK_DOWN || k == KK_LEFT || k == KK_RIGHT) {
-      erase();
-      walkCursors(k, pane);
-      pane.adjustOffset();
-      pane.drawBuffer();
-      pane.drawCursors();
-    }
-    LOGF << "key: " << k << "\r\n";
+void mainLoop(Pane &pane) {
+  int k = getch();
+  if (k == 3 /*ctrl-c*/ || k == 17 /*ctrl-q*/) {
+    quitNed = true;
+    return;
   }
-  LOGFLUSH;
+  if (k == KEY_UP || k == KEY_DOWN || k == KEY_LEFT || k == KEY_RIGHT) {
+    erase();
+    walkCursors(k, pane);
+    pane.adjustOffset();
+    pane.drawBuffer();
+    pane.drawCursors();
+  }
+  if (k != -1) {
+    LOGF << "key: " << k << "\r\n";
+    LOGFLUSH;
+  }
 }
 
 void signal_callback_handler(int signum) {
@@ -79,7 +61,32 @@ std::string toDirectory(std::string filepath) {
   return filepath;
 }
 
-int main(int argc, char** argv) {
+std::vector<std::string> toLines(std::string s) {
+  std::vector<std::string> result;
+  int start = 0;
+  for (int i = 0; i < (int)s.size(); i++) {
+    if (s[i] == '\n' || i == (int)s.size() - 1) {
+      result.push_back(s.substr(start, i - start));
+      start = i + 1;
+    }
+  }
+  return result;
+};
+
+EditBuffer loadFile(std::string file) {
+  std::ifstream ifile{file};
+  std::vector<std::string> lines;
+  std::string line;
+  while (std::getline(ifile, line)) {
+    lines.push_back(line);
+    line = "";
+  }
+  EditBuffer buf{lines};
+  return buf;
+}
+
+int main(int argc, char **argv) {
+#pragma unused(argc)
   chdir(toDirectory(argv[0]).c_str());
   logf = std::ofstream("log.txt", std::ofstream::out | std::ofstream::trunc);
   if (!logf) {
@@ -87,23 +94,18 @@ int main(int argc, char** argv) {
     return 1;
   }
   signal(SIGINT, signal_callback_handler);
-  std::vector<std::string> lines(
-      {"this is a rearendering code. this is a relly long line  lolol it will "
-       "require some scrolling probalby something else when switching between "
-       "lines oh lol oh lol yeah.",
-       "is", "a", "test", "yo!"});
-  EditBuffer buf{lines};
+  EditBuffer buf = loadFile("test.txt");
   // setup ncurses
-  WINDOW* w = initscr();
+  WINDOW *w = initscr();
   halfdelay(1);
   keypad(w, true);
   noecho();
   nonl();
-  curs_set(0);  // hide the builtin cursor
+  curs_set(0); // hide the builtin cursor
   intrflush(w, false);
-  // destroy ncurses
+  raw();
   Pane pane{w, buf};
-  pane.setOffset(0, 2);
+  // pane.setOffset(2, 0);
   pane.drawBuffer();
   pane.addCursor();
   while (!quitNed) {

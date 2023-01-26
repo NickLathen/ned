@@ -27,4 +27,7 @@ Changelog:
       arrow navigation (use bounds of window)
       virtual cursor (use bounds of buffer)
       handle offset buffer
+  2023-01-25
+    Develop
+
 */
