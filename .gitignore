@@ -1,7 +1,13 @@
 *
 !.gitignore
-!*.cc
-!*.hh
-!Makefile
+
 !.vscode
 !.vscode/*
+
+!doc
+!doc/*
+
+!src
+!src/*
+
+!Makefile

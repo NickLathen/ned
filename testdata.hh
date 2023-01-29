@@ -1,4 +1,0 @@
-#pragma once
-#include <string>
-
-std::string testString = "Changelog : 2023 -\n                         01 -\n                         23 : Develop Feature Plan : MVP arrow navigation scrolling a buffer character entry(typing)\ncharacter delete (delete / backspace)\n            V1 .0 start from existing file\n        save to existing file\n        V1 .5 selection(shift + arrow keys)\n            V2\n        line\n        / selecting moving(ctrl + up / sown)\n              V3\n        multi caret editing(ctrl - d)\n            V\n    +\n    multi file editing(tabs)\n        Develop : arrow navigation(buggy)\n\n                      2023 -\n                  01 - 24 Plan : Develop : arrow navigation(use bounds of window) virtual cursor(use bounds of buffer) handle offset buffer\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline";

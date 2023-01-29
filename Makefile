@@ -5,7 +5,7 @@ SANITIZE=
 WARNALL=-Wall -Wextra -Wpedantic
 DEBUG=-g
 STD=--std=c++17
-LDLIBS=-lstdc++ -lncurses
+LDLIBS=-lstdc++ -lpanel -lncurses
 CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
 
 #implicit rules?
@@ -14,9 +14,10 @@ CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
 #  % : %.o
 # 	$(CXX) $(LDFLAGS) $< $(LOADLIBES) $(LDLIBS) -o $@
 
-%.i : %.cc
-	$(CXX) $(CPPFLAGS) $< $(CXXFLAGS) -E -o $@
-ned : pane.cc ned.cc
+
+ned : src/buffercursor.cc src/editbuffer.cc src/pane.cc src/ned.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $^ -o $@
+
 
 clean:
-	rm -f *.o
+	rm -f ./ned

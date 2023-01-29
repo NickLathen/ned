@@ -1,4 +1,3 @@
-/*
 Changelog:
   2023-01-23:
     Develop Feature Plan:
@@ -11,6 +10,8 @@ Changelog:
         start from existing file
         save to existing file
       V1.5
+        undo/redo
+        error line
         selection (shift + arrow keys)
       V2
         line/selecting moving (ctrl + up/sown)
@@ -28,6 +29,13 @@ Changelog:
       virtual cursor (use bounds of buffer)
       handle offset buffer
   2023-01-25
-    Develop
-
-*/
+    Develop:
+      load from file
+      backspace
+  2023-01-26
+    Develop:
+      typing [X]
+      newline [X]
+      delete[X]
+      open from file
+      save to file
