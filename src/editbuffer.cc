@@ -4,12 +4,12 @@
 #include "const.hh"
 #include "pane.hh"
 
-EditBuffer::EditBuffer() : lines{""} {};
+EditBuffer::EditBuffer() {}
 EditBuffer::EditBuffer(std::vector<std::string>&& l) : lines{l} {
   if (lines.size() == 0) {
     lines.push_back("");
   }
-};
+}
 void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
   int cRow = cursor.position.row;
   int cCol = cursor.position.col;
@@ -27,7 +27,7 @@ void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
   }
   cursor.position.row = cRow + 1;
   cursor.position.col = 0;
-};
+}
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   // ignore selections for now;
   int cRow = cursor.position.row;
@@ -68,7 +68,7 @@ void EditBuffer::deleteAtCursor(const BufferCursor& cursor) {
     // Cursor is somewhere within row, just remove the character
     lines[cRow].erase(lines[cRow].begin() + cCol);
   }
-};
+}
 void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
   int cRow = cursor.position.row;
   int cCol = cursor.position.col;

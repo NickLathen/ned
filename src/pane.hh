@@ -17,7 +17,7 @@ class EditBuffer {
  public:
   EditBuffer();
   EditBuffer(std::vector<std::string>&& lines);
-  std::vector<std::string> lines{};
+  std::vector<std::string> lines{""};
   void insertAtCursor(BufferCursor& cursor, int keycode);
   void loadFromFile(std::string filename);
 
@@ -39,9 +39,7 @@ class BufferCursor {
   void drawOffset(WINDOW* window,
                   const EditBuffer& buf,
                   const BufferPosition& bufOffset);
-  BufferPosition position;
-
- private:
+  BufferPosition position{};
 };
 
 class Pane {
@@ -56,19 +54,28 @@ class Pane {
   void redraw();
 
  private:
-  WINDOW* window;
-  std::string filename;
-  EditBuffer buf;
-  BufferPosition bufOffset;
-  std::vector<BufferCursor> cursors;
+  int paneFocus{};
+  int command{};
+  int commandCursorPosition{};
+  WINDOW* window{};
+  std::string filename{""};
+  std::string commandPrompt{""};
+  std::string userCommandArgs{""};
+  EditBuffer buf{};
+  BufferPosition bufOffset{};
+  std::vector<BufferCursor> cursors{BufferCursor{}};
   int getGutterWidth();
   void adjustOffsetToCursor(const BufferCursor& cursor);
   void adjustOffset();
+  void initiateSaveCommand();
+  void handleTextKeypress(int keycode);
+  void handleCommandKeypress(int keycode);
   void setOffset(size_t row, size_t col);
   void drawBlankLine(int row, int maxX, PALETTES color);
   void drawGutter(int row, int lineNumber, int gutterWidth);
   void drawLine(int lineNumber, int startCol, int sz, PALETTES color);
   void drawInfoRow(int maxX, int maxY);
+  void drawCommandRow(int maxX, int maxY);
   void drawBuffer();
   void drawCursors();
   void refresh();

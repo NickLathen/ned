@@ -19,15 +19,42 @@ int getNumDigits(int num) {
   return nums;
 }
 
-Pane::Pane(){};
-Pane::Pane(WINDOW* window) : window{window} {};
-Pane::Pane(WINDOW* window, EditBuffer&& eb) : window{window}, buf{eb} {};
+enum PaneFocus { PF_TEXT, PF_COMMAND };
+enum Command { OPEN, SAVE };
+
+Pane::Pane() : paneFocus{PF_TEXT} {}
+Pane::Pane(WINDOW* window) : paneFocus{PF_TEXT}, window{window} {}
+Pane::Pane(WINDOW* window, EditBuffer&& eb)
+    : paneFocus{PF_TEXT}, window{window}, buf{eb} {}
 void Pane::addCursor() {
-  cursors.push_back(BufferCursor());
+  cursors.push_back(BufferCursor{});
 }
 void Pane::handleKeypress(int keycode) {
+  switch (paneFocus) {
+    case PF_TEXT:
+      handleTextKeypress(keycode);
+      break;
+    case PF_COMMAND:
+      handleCommandKeypress(keycode);
+      break;
+    default:
+      break;
+  }
+}
+void Pane::initiateSaveCommand() {
+  paneFocus = PF_COMMAND;
+  command = SAVE;
+  commandPrompt = "Filename: ";
+  userCommandArgs = filename;
+  redraw();
+}
+void Pane::handleCommandKeypress(int keycode) {}
+void Pane::handleTextKeypress(int keycode) {
   bool isHandledPress = false;
   switch (keycode) {
+    case CTRL_S:
+      initiateSaveCommand();
+      return;
     case KEY_UP:
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
@@ -137,6 +164,35 @@ void Pane::drawInfoRow(int maxX, int maxY) {
   }
 }
 
+void Pane::drawCommandRow(int maxX, int maxY) {
+  size_t promptSize = commandPrompt.size();
+  size_t argSize = userCommandArgs.size();
+  size_t commandSize = promptSize + argSize;
+  int cursorScreenX = promptSize + commandCursorPosition;
+  int offset = 0;
+  if (cursorScreenX > maxX) {
+    offset = cursorScreenX - maxX;
+  }
+  // draw the text
+  wattron(window, COLOR_PAIR(N_COMMAND));
+  wmove(window, maxY - 1, 0);
+  for (int col = 0; col < maxX; col++) {
+    int bufIndex = col + offset;
+    if (bufIndex <= (int)promptSize - 1) {
+      waddch(window, commandPrompt[bufIndex]);
+    } else if (bufIndex <= (int)commandSize - 1) {
+      waddch(window, userCommandArgs[bufIndex + promptSize]);
+    } else {
+      waddch(window, ' ');
+    }
+  }
+  // draw the cursor
+  if (paneFocus == PF_COMMAND) {
+    mvwchgat(window, maxY - 1, cursorScreenX - offset, 1, A_STANDOUT,
+             COLOR_PAIR(N_COMMAND), nullptr);
+  }
+}
+
 void Pane::drawBuffer() {
   if (buf.lines.size() == 0)
     return;
@@ -153,6 +209,7 @@ void Pane::drawBuffer() {
     drawLine(lineNumber, bufOffset.col, maxX - gutterWidth, N_TEXT);
   }
   drawInfoRow(maxX, maxY);
+  drawCommandRow(maxX, maxY);
 }
 void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
   int maxX, maxY;

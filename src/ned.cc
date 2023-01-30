@@ -26,7 +26,7 @@ std::string toDirectory(std::string filepath) {
 
 void mainLoop(Pane& pane) {
   int keycode = pane.getKeypress();
-  std::cout << "key: " << keycode << "\r\n";
+  std::cout << "key: " << keycode << std::endl;
   if (keycode == -1) {
     return;
   }
@@ -38,8 +38,10 @@ void mainLoop(Pane& pane) {
 }
 
 int main(int argc, char** argv) {
+  std::streambuf* coutBackup;
   chdir(toDirectory(argv[0]).c_str());
 
+  coutBackup = std::cout.rdbuf();
   std::ofstream logfile("log.txt");
   std::cout.rdbuf(logfile.rdbuf());
 
@@ -60,17 +62,23 @@ int main(int argc, char** argv) {
   halfdelay(1);
   noecho();
   nonl();
-  curs_set(0);  // hide the builtin cursor
+  curs_set(0);
   raw();
 
+  // prepare pane
   Pane pane{textPane};
   if (argc == 2) {
     pane.loadFromFile(argv[1]);
   }
-  pane.addCursor();
   pane.redraw();
+
+  // MAIN LOOP
   while (!quitNed) {
     mainLoop(pane);
   }
+
+  // clean up
+  std::cout.rdbuf(coutBackup);
+  logfile.close();
   endwin();
 }

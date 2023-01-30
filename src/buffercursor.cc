@@ -1,8 +1,8 @@
 #include <iostream>
 #include "pane.hh"
 
-BufferCursor::BufferCursor() : position{} {};
-BufferCursor::BufferCursor(BufferPosition pos) : position{pos} {};
+BufferCursor::BufferCursor() {}
+BufferCursor::BufferCursor(BufferPosition pos) : position{pos} {}
 void BufferCursor::moveSet(int x, int y) {
   std::cout << "moveset: " << x << ", " << y << std::endl;
   position.row = y;
@@ -19,11 +19,6 @@ void BufferCursor::moveRight(const EditBuffer& buf) {
     newY = 0;
   if (newY >= (int)buf.lines.size())
     newY = buf.lines.size() - 1;
-  if (position.col < 0) {
-    newX = std::min(1, (int)buf.lines[newY].size());
-    moveSet(newX, newY);
-    return;
-  }
   bool isPastEOL = newX > (int)buf.lines[newY].size();
   if (!isPastEOL) {
     moveSet(newX, newY);
@@ -39,7 +34,7 @@ void BufferCursor::moveRight(const EditBuffer& buf) {
   newY++;
   newX = 0;
   moveSet(newX, newY);
-};
+}
 void BufferCursor::moveLeft(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
     moveSet(0, 0);
@@ -67,7 +62,7 @@ void BufferCursor::moveLeft(const EditBuffer& buf) {
   newY--;
   newX = buf.lines[newY].size();
   moveSet(newX, newY);
-};
+}
 void BufferCursor::moveUp(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
     moveSet(0, 0);
@@ -82,7 +77,7 @@ void BufferCursor::moveUp(const EditBuffer& buf) {
   if (newY >= (int)buf.lines.size() - 1)
     newY = std::max((int)buf.lines.size() - 2, 0);
   moveSet(newX, newY);
-};
+}
 void BufferCursor::moveDown(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
     moveSet(0, 0);
@@ -98,7 +93,7 @@ void BufferCursor::moveDown(const EditBuffer& buf) {
   if (newY > (int)buf.lines.size() - 1)
     newY = buf.lines.size() - 1;
   moveSet(newX, newY);
-};
+}
 void BufferCursor::drawOffset(WINDOW* window,
                               const EditBuffer& buf,
                               const BufferPosition& bufOffset) {

@@ -1,23 +1,16 @@
-CC=clang
-CPP=clang
-CXX=clang
-SANITIZE=
+CC=g++
+CPP=g++
+CXX=g++
 WARNALL=-Wall -Wextra -Wpedantic
 DEBUG=-g
 STD=--std=c++17
 LDLIBS=-lstdc++ -lpanel -lncurses
-CXXFLAGS=$(STD) $(SANITIZE) $(WARNALL) $(DEBUG)
+CXXFLAGS=$(STD) $(WARNALL) $(DEBUG)
 
-#implicit rules?
-#  %.o : %.cc
-# 	$(CXX) $(CPPFLAGS) $< $(CXXFLAGS) -c -o $@
-#  % : %.o
-# 	$(CXX) $(LDFLAGS) $< $(LOADLIBES) $(LDLIBS) -o $@
-
-
-ned : src/buffercursor.cc src/editbuffer.cc src/pane.cc src/ned.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $^ -o $@
-
+ned : src/buffercursor.o src/editbuffer.o src/pane.o src/ned.o
+	$(CXX) $^ -o $@ $(LDLIBS)
 
 clean:
+	rm -f ./src/*.o
 	rm -f ./ned
+  
