@@ -36,9 +36,6 @@ class BufferCursor {
   void moveUp(const EditBuffer& buf);
   void moveDown(const EditBuffer& buf);
   void moveSet(int x, int y);
-  void drawOffset(WINDOW* window,
-                  const EditBuffer& buf,
-                  const BufferPosition& bufOffset);
   BufferPosition position{};
 };
 
@@ -67,7 +64,9 @@ class Pane {
   int getGutterWidth();
   void adjustOffsetToCursor(const BufferCursor& cursor);
   void adjustOffset();
+  void saveBufferToFile(std::string saveTarget);
   void initiateSaveCommand();
+  void initiateOpenCommand();
   void handleTextKeypress(int keycode);
   void handleCommandKeypress(int keycode);
   void setOffset(size_t row, size_t col);

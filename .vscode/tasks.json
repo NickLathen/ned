@@ -6,7 +6,7 @@
       "label": "make_debug_executable",
       "command": "/usr/bin/make",
       "args": [
-        "${fileBasenameNoExtension}"
+        "ned"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -15,7 +15,7 @@
         "$gcc"
       ],
       "group": "build",
-      "detail": "compiler: /usr/bin/clang"
+      "detail": "compiler: /usr/bin/g++"
     }
   ]
 }

@@ -94,21 +94,3 @@ void BufferCursor::moveDown(const EditBuffer& buf) {
     newY = buf.lines.size() - 1;
   moveSet(newX, newY);
 }
-void BufferCursor::drawOffset(WINDOW* window,
-                              const EditBuffer& buf,
-                              const BufferPosition& bufOffset) {
-  int maxX, maxY;
-  getmaxyx(window, maxY, maxX);
-  int bufX = position.col;
-  int bufY = position.row;
-  if (bufX > (int)buf.lines[bufY].size()) {
-    bufX = buf.lines[bufY].size();
-  }
-  int screenX = bufX + bufOffset.col;
-  int screenY = bufY - bufOffset.row;
-  // ignore offscreen
-  if (screenX < 0 || screenX >= maxX || screenY < 0 || screenY >= maxY)
-    return;
-
-  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
-}

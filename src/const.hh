@@ -1,4 +1,5 @@
 #define CTRL_C 3
+#define CTRL_O 15
 #define CTRL_Q 17
 #define CTRL_S 19
 #define CARRIAGE_RETURN 13

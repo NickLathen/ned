@@ -94,16 +94,17 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
       cursor.position.col = cCol + 1;
   }
 }
-void EditBuffer::loadFromFile(std::string filename) {
+void EditBuffer::loadFromFile(const std::string filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
     std::cout << "ERROR:loadFile Failed to open: " << filename << std::endl;
     signal_callback_handler(1);
   }
   lines.clear();
-  std::string line;
+  std::string line{""};
   while (std::getline(ifile, line)) {
     lines.push_back(line);
     line = "";
   }
+  ifile.close();
 }

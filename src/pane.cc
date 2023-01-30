@@ -1,6 +1,7 @@
 #include "pane.hh"
 #include <ncurses.h>
 #include <panel.h>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include "const.hh"
@@ -44,16 +45,93 @@ void Pane::handleKeypress(int keycode) {
 void Pane::initiateSaveCommand() {
   paneFocus = PF_COMMAND;
   command = SAVE;
-  commandPrompt = "Filename: ";
+  commandPrompt = "Save Filename: ";
   userCommandArgs = filename;
+  commandCursorPosition = filename.size();
   redraw();
 }
-void Pane::handleCommandKeypress(int keycode) {}
+void Pane::initiateOpenCommand() {
+  paneFocus = PF_COMMAND;
+  command = OPEN;
+  commandPrompt = "Open Filename: ";
+  userCommandArgs = "";
+  commandCursorPosition = 0;
+  redraw();
+}
+void Pane::saveBufferToFile(std::string saveTarget) {
+  std::ofstream saveFile{"ned.tmp", std::ios_base::trunc | std::ios_base::out};
+  for (size_t line = 0; line < buf.lines.size(); line++) {
+    for (size_t col = 0; col < buf.lines[line].size(); col++) {
+      saveFile.put(buf.lines[line][col]);
+    }
+    if (line < buf.lines.size() - 1) {
+      saveFile.put('\n');
+    }
+  }
+  saveFile.close();
+  std::rename(saveTarget.c_str(), "ned.tmp.bak");
+  std::rename("ned.tmp", saveTarget.c_str());
+  std::remove("ned.tmp.bak");
+}
+void Pane::handleCommandKeypress(int keycode) {
+  bool isHandledPress = false;
+  switch (keycode) {
+    case CARRIAGE_RETURN:
+      isHandledPress = true;
+      switch (command) {
+        case SAVE:
+          saveBufferToFile(userCommandArgs);
+          filename = userCommandArgs;
+          commandPrompt = "Saved File";
+          userCommandArgs = "";
+          paneFocus = PF_TEXT;
+          break;
+        case OPEN:
+          loadFromFile(userCommandArgs);
+          commandPrompt = "Loaded File";
+          userCommandArgs = "";
+          paneFocus = PF_TEXT;
+          break;
+      }
+      break;
+    case BACKSPACE:
+      if (commandCursorPosition > 0) {
+        isHandledPress = true;
+        userCommandArgs.erase(userCommandArgs.begin() + commandCursorPosition -
+                              1);
+        commandCursorPosition--;
+      }
+      break;
+    case DELETE:
+      if (commandCursorPosition < (int)userCommandArgs.size()) {
+        isHandledPress = true;
+        userCommandArgs.erase(userCommandArgs.begin() + commandCursorPosition);
+      }
+      break;
+    default:
+      isHandledPress = true;
+      if (commandCursorPosition >= (int)userCommandArgs.size()) {
+        userCommandArgs.push_back((char)keycode);
+        commandCursorPosition = userCommandArgs.size();
+      } else {
+        userCommandArgs.insert(userCommandArgs.begin() + commandCursorPosition,
+                               (char)keycode);
+        commandCursorPosition++;
+      }
+      break;
+  }
+  if (isHandledPress) {
+    redraw();
+  }
+}
 void Pane::handleTextKeypress(int keycode) {
   bool isHandledPress = false;
   switch (keycode) {
     case CTRL_S:
       initiateSaveCommand();
+      return;
+    case CTRL_O:
+      initiateOpenCommand();
       return;
     case KEY_UP:
       isHandledPress = true;
@@ -96,12 +174,22 @@ void Pane::handleTextKeypress(int keycode) {
 }
 void Pane::drawCursors() {
   int gutterWidth = getGutterWidth();
-  BufferPosition bufOffsetWithGutter = bufOffset;
-  bufOffsetWithGutter.col += gutterWidth;
-  std::cout << "bufOffsetWithGutter{row, col}=" << bufOffsetWithGutter.row
-            << ", " << bufOffsetWithGutter.col << std::endl;
   for (BufferCursor& c : cursors) {
-    c.drawOffset(window, buf, bufOffsetWithGutter);
+    int maxX, maxY;
+    getmaxyx(window, maxY, maxX);
+    int bufX = c.position.col;
+    int bufY = c.position.row;
+    if (bufX > (int)buf.lines[bufY].size()) {
+      bufX = buf.lines[bufY].size();
+    }
+    int screenX = bufX - bufOffset.col + gutterWidth;
+    int screenY = bufY - bufOffset.row;
+    // ignore offscreen
+    if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
+        screenY >= maxY - 2)
+      return;
+
+    mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
   }
 }
 
@@ -133,7 +221,7 @@ void Pane::drawGutter(int row, int lineNumber, int gutterWidth) {
 void Pane::drawLine(int lineNumber, int startCol, int sz, PALETTES color) {
   std::string line = buf.lines[lineNumber];
   wattron(window, COLOR_PAIR(color));
-  for (int i = startCol; i < sz; i++) {
+  for (int i = startCol; i < startCol + sz; i++) {
     if (i >= (int)line.size()) {
       waddch(window, ' ');
     } else {
@@ -163,7 +251,6 @@ void Pane::drawInfoRow(int maxX, int maxY) {
     }
   }
 }
-
 void Pane::drawCommandRow(int maxX, int maxY) {
   size_t promptSize = commandPrompt.size();
   size_t argSize = userCommandArgs.size();
@@ -181,7 +268,7 @@ void Pane::drawCommandRow(int maxX, int maxY) {
     if (bufIndex <= (int)promptSize - 1) {
       waddch(window, commandPrompt[bufIndex]);
     } else if (bufIndex <= (int)commandSize - 1) {
-      waddch(window, userCommandArgs[bufIndex + promptSize]);
+      waddch(window, userCommandArgs[bufIndex - promptSize]);
     } else {
       waddch(window, ' ');
     }
@@ -192,7 +279,6 @@ void Pane::drawCommandRow(int maxX, int maxY) {
              COLOR_PAIR(N_COMMAND), nullptr);
   }
 }
-
 void Pane::drawBuffer() {
   if (buf.lines.size() == 0)
     return;
@@ -219,12 +305,13 @@ void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
   if (bufX > (int)buf.lines[bufY].size()) {
     bufX = buf.lines[bufY].size();
   }
-  int screenX = bufX - bufOffset.col;
+  int gutterWidth = getGutterWidth();
+  int screenX = bufX - bufOffset.col + gutterWidth;
   int screenY = bufY - bufOffset.row;
-  if (screenX < 4) {
+  if (screenX < 4 + gutterWidth) {
     bufOffset.col = std::max(bufX - 4, 0);
   } else if (screenX >= maxX - 4) {
-    bufOffset.col = bufX - maxX + 5;
+    bufOffset.col = bufX - maxX + 5 + gutterWidth;
   }
   if (screenY < 0) {
     bufOffset.row = bufY;
@@ -262,6 +349,8 @@ void Pane::loadFromFile(const std::string& iFilename) {
 
 void Pane::redraw() {
   adjustOffset();
+  std::cout << "bufOffset{row,col}: {" << bufOffset.row << ", " << bufOffset.col
+            << "}" << std::endl;
   drawBuffer();
   drawCursors();
   refresh();
