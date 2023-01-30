@@ -52,7 +52,7 @@ class Pane {
   void addCursor();
   int getKeypress();
   void handleKeypress(int keycode);
-  void loadFromFile(std::string filename);
+  void loadFromFile(const std::string& filename);
   void redraw();
 
  private:
@@ -65,6 +65,10 @@ class Pane {
   void adjustOffsetToCursor(const BufferCursor& cursor);
   void adjustOffset();
   void setOffset(size_t row, size_t col);
+  void drawBlankLine(int row, int maxX, PALETTES color);
+  void drawGutter(int row, int lineNumber, int gutterWidth);
+  void drawLine(int lineNumber, int startCol, int sz, PALETTES color);
+  void drawInfoRow(int maxX, int maxY);
   void drawBuffer();
   void drawCursors();
   void refresh();

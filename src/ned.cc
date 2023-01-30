@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 #include "const.hh"
-#include "log.hh"
 #include "pane.hh"
 
 bool quitNed = false;
@@ -27,6 +26,7 @@ std::string toDirectory(std::string filepath) {
 
 void mainLoop(Pane& pane) {
   int keycode = pane.getKeypress();
+  std::cout << "key: " << keycode << "\r\n";
   if (keycode == -1) {
     return;
   }
@@ -35,18 +35,14 @@ void mainLoop(Pane& pane) {
     return;
   }
   pane.handleKeypress(keycode);
-  LOGF << "key: " << keycode << "\r\n";
-  LOGFLUSH;
 }
 
 int main(int argc, char** argv) {
-#pragma unused(argc)
   chdir(toDirectory(argv[0]).c_str());
-  logf = std::ofstream("log.txt", std::ofstream::out | std::ofstream::trunc);
-  if (!logf.is_open()) {
-    std::cerr << "Failed to open log.txt\n";
-    return 1;
-  }
+
+  std::ofstream logfile("log.txt");
+  std::cout.rdbuf(logfile.rdbuf());
+
   signal(SIGINT, signal_callback_handler);
 
   // setup ncurses
@@ -57,8 +53,8 @@ int main(int argc, char** argv) {
   init_pair(N_INFO, 0, 15);
   init_pair(N_COMMAND, 15, 234);
   WINDOW* textPane = newwin(0, 0, 0, 0);
-  LOGF << "LINES=" << LINES << std::endl;
-  LOGF << "COLS=" << COLS << std::endl;
+  std::cout << "LINES=" << LINES << std::endl;
+  std::cout << "COLS=" << COLS << std::endl;
   keypad(textPane, true);
   intrflush(textPane, false);
   halfdelay(1);
@@ -68,7 +64,9 @@ int main(int argc, char** argv) {
   raw();
 
   Pane pane{textPane};
-  pane.loadFromFile("test.txt");
+  if (argc == 2) {
+    pane.loadFromFile(argv[1]);
+  }
   pane.addCursor();
   pane.redraw();
   while (!quitNed) {

@@ -1,5 +1,7 @@
+#include <fstream>
+#include <iostream>
+#include <string>
 #include "const.hh"
-#include "log.hh"
 #include "pane.hh"
 
 EditBuffer::EditBuffer() : lines{""} {};
@@ -93,9 +95,9 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
   }
 }
 void EditBuffer::loadFromFile(std::string filename) {
-  std::ifstream ifile{filename};
+  std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
-    LOGF << "ERROR:loadFile Failed to open: " << filename << std::endl;
+    std::cout << "ERROR:loadFile Failed to open: " << filename << std::endl;
     signal_callback_handler(1);
   }
   lines.clear();
