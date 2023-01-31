@@ -347,8 +347,8 @@ void Pane::drawCommandRow(int maxX, int maxY) const {
   }
   // draw the cursor
   if (paneFocus == PF_COMMAND) {
-    mvwchgat(window, maxY - 1, cursorScreenX - offset, 1, A_STANDOUT,
-             COLOR_PAIR(N_COMMAND), nullptr);
+    mvwchgat(window, maxY - 1, cursorScreenX - offset, 1, A_STANDOUT, N_COMMAND,
+             nullptr);
   }
 }
 void Pane::drawBuffer() const {
@@ -380,13 +380,10 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   }
   int distance = 0;
   int cursorDistance = -1;
-  int leftScreenDistance = -1;
   for (int i = 0; i < (int)buf.lines[bufY].size(); i++) {
     if (i == bufX)
       cursorDistance = distance;
-    if (i == (int)bufOffset.col)
-      leftScreenDistance = distance;
-    if (cursorDistance >= 0 && leftScreenDistance >= 0)
+    if (cursorDistance >= 0)
       break;
     if (buf.lines[bufY][i] == '\t') {
       int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
@@ -395,26 +392,20 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
       distance += 1;
     }
   }
-  if (leftScreenDistance < 0) {
-    if (buf.lines[bufY].size() == 0 && bufOffset.col == 0) {
-      leftScreenDistance = 0;
-    } else {
-      return;  // line doesn't appear on screen
-    }
-  }
   if (cursorDistance < 0)
     cursorDistance = distance;
 
-  int screenX = gutterWidth + (cursorDistance - leftScreenDistance);
+  int screenX = gutterWidth + cursorDistance;
   int screenY = bufY - bufOffset.row;
   // ignore offscreen
   if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
       screenY >= maxY - 2)
     return;
 
-  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_TEXT, nullptr);
 }
 void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
+  wattron(window, COLOR_PAIR(N_HIGHLIGHT));
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
   BufferPosition start =
@@ -479,13 +470,8 @@ void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
       screenStartX = gutterWidth;
     if (screenEndX > maxX - 1)
       screenEndX = maxX - 1;
-    wattron(window, COLOR_PAIR(N_HIGHLIGHT));
-    for (int col = screenStartX; col <= screenEndX; col++) {
-      // TODO do this in bulk somehow?
-      int c = mvwinch(window, screenY, col);
-      c = c & ~A_ATTRIBUTES;
-      mvwaddch(window, screenY, col, c);
-    }
+    mvwchgat(window, screenY, screenStartX, screenEndX - screenStartX + 1, 0,
+             N_HIGHLIGHT, nullptr);
   }
 }
 void Pane::drawCursors() const {
