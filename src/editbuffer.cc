@@ -52,7 +52,7 @@ void EditBuffer::loadFromFile(const std::string filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
     std::cout << "ERROR:loadFile Failed to open: " << filename << std::endl;
-    signal_callback_handler(1);
+    exitNed(1);
   }
   lines.clear();
   std::string line{""};

@@ -11,9 +11,10 @@
 
 #define TAB 9
 #define CARRIAGE_RETURN 13
+#define ESCAPE 27
 #define BACKSPACE 263
 #define DELETE 330
 
 #define TABSTOPWIDTH 4
 
-void signal_callback_handler(int signum);
+void exitNed(int signum);

@@ -111,6 +111,12 @@ void Pane::handleCommandKeypress(int keycode) {
           break;
       }
       break;
+    case ESCAPE:
+      isHandledPress = true;
+      commandPrompt = "";
+      userCommandArgs = "";
+      paneFocus = PF_TEXT;
+      break;
     case BACKSPACE:
       if (commandCursorPosition > 0) {
         isHandledPress = true;
@@ -264,7 +270,6 @@ void Pane::drawGutter(int row, int lineNumber, int gutterWidth) const {
   waddch(window, ' ');
 }
 void Pane::drawLine(int lineNumber, int startCol, int sz) const {
-  // TODO change to correct color for cursor selections
   wattron(window, COLOR_PAIR(N_TEXT));
   std::string line = buf.lines[lineNumber];
   int lIndex = 0;
@@ -425,12 +430,14 @@ void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
       assert(false);
     }
     if (end.row > row) {
-      selEndCol = buf.lines[row].size() - 1;
+      selEndCol = buf.lines[row].size();
     } else if (end.row == row) {
-      selEndCol = end.col;
+      selEndCol = end.col - 1;
     } else {
       assert(false);
     }
+    if (selEndCol < 0)
+      continue;  // selection ends at very beginning of line
     if (selEndCol > (int)buf.lines[row].size()) {
       selEndCol = buf.lines[row].size();
     }

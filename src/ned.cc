@@ -7,8 +7,12 @@
 #include "pane.hh"
 
 bool quitNed = false;
+std::streambuf* coutBackup = nullptr;
+std::ofstream* logfilep = nullptr;
 
-void signal_callback_handler(int signum) {
+void exitNed(int signum) {
+  std::cout.rdbuf(coutBackup);
+  logfilep->close();
   endwin();
   exit(signum);
 }
@@ -33,14 +37,14 @@ void mainLoop(Pane& pane) {
 }
 
 int main(int argc, char** argv) {
-  std::streambuf* coutBackup;
   chdir(toDirectory(argv[0]).c_str());
 
   coutBackup = std::cout.rdbuf();
   std::ofstream logfile("log.txt", std::ios_base::out | std::ios_base::trunc);
+  logfilep = &logfile;
   std::cout.rdbuf(logfile.rdbuf());
 
-  signal(SIGINT, signal_callback_handler);
+  signal(SIGINT, exitNed);
 
   // setup ncurses
   initscr();
@@ -74,7 +78,5 @@ int main(int argc, char** argv) {
   }
 
   // clean up
-  std::cout.rdbuf(coutBackup);
-  logfile.close();
-  endwin();
+  exitNed(0);
 }
