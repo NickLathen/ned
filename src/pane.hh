@@ -31,6 +31,8 @@ class BufferCursor {
  public:
   BufferCursor();
   BufferCursor(BufferPosition pos);
+  void moveSet(int x, int y);
+  void selectSet(int x, int y);
   void selectUp(const EditBuffer& buf);
   void selectDown(const EditBuffer& buf);
   void selectLeft(const EditBuffer& buf);
@@ -39,9 +41,13 @@ class BufferCursor {
   void moveDown(const EditBuffer& buf);
   void moveLeft(const EditBuffer& buf);
   void moveRight(const EditBuffer& buf);
+  size_t getRow() const;
+  size_t getCol() const;
+  size_t getTailRow() const;
+  size_t getTailCol() const;
+  bool isSelection() const;
 
-  void moveSet(int x, int y);
-  void selectSet(int x, int y);
+ private:
   BufferPosition position{};
   BufferPosition tailPosition{};
 };
@@ -53,7 +59,7 @@ class Pane {
   Pane(WINDOW* window);
   Pane(WINDOW* window, EditBuffer&& eb);
   void addCursor();
-  int getKeypress();
+  int getKeypress() const;
   void handleKeypress(int keycode);
   void loadFromFile(const std::string& filename);
   void redraw();
@@ -69,24 +75,27 @@ class Pane {
   EditBuffer buf{};
   BufferPosition bufOffset{};
   std::vector<BufferCursor> cursors{BufferCursor{}};
-  int getGutterWidth();
-  void adjustOffsetToCursor(const BufferCursor& cursor);
-  void adjustOffset();
-  void saveBufferToFile(std::string saveTarget);
   void initiateSaveCommand();
   void initiateOpenCommand();
-  void handleTextKeypress(int keycode);
+  void saveBufferToFile(std::string saveTarget);
   void handleCommandKeypress(int keycode);
-  void setOffset(size_t row, size_t col);
-  void drawBlankLine(int row, int maxX, PALETTES color);
-  void drawGutter(int row, int lineNumber, int gutterWidth);
-  void drawLine(int lineNumber, int startCol, int sz);
-  void drawInfoRow(int maxX, int maxY);
-  void drawCommandRow(int maxX, int maxY);
-  void drawBuffer();
-  void drawSingleCursor(const BufferCursor& cursor, int gutterWidth);
-  void drawSelectionCursor(const BufferCursor& cursor);
-  void drawCursors();
-  void refresh();
-  void erase();
+  void handleTextKeypress(int keycode);
+
+  void adjustOffsetToCursor(const BufferCursor& cursor);
+  void adjustOffset();
+
+  void drawBlankLine(int row, int maxX, PALETTES color) const;
+  void drawGutter(int row, int lineNumber, int gutterWidth) const;
+  void drawLine(int lineNumber, int startCol, int sz) const;
+  void drawInfoRow(int maxX, int maxY) const;
+  void drawCommandRow(int maxX, int maxY) const;
+  void drawBuffer() const;
+
+  void drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const;
+  void drawSelectionCursor(const BufferCursor& cursor) const;
+  void drawCursors() const;
+
+  void refresh() const;
+  void erase() const;
+  int getGutterWidth() const;
 };

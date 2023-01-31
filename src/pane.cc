@@ -26,8 +26,12 @@ Pane::Pane() : paneFocus{PF_TEXT} {}
 Pane::Pane(WINDOW* window) : paneFocus{PF_TEXT}, window{window} {}
 Pane::Pane(WINDOW* window, EditBuffer&& eb)
     : paneFocus{PF_TEXT}, window{window}, buf{eb} {}
+
 void Pane::addCursor() {
   cursors.push_back(BufferCursor{});
+}
+int Pane::getKeypress() const {
+  return wgetch(window);
 }
 void Pane::handleKeypress(int keycode) {
   switch (paneFocus) {
@@ -41,6 +45,19 @@ void Pane::handleKeypress(int keycode) {
       break;
   }
 }
+void Pane::loadFromFile(const std::string& iFilename) {
+  buf.loadFromFile(iFilename);
+  filename = iFilename;
+}
+void Pane::redraw() {
+  adjustOffset();
+  std::cout << "bufOffset{row,col}: {" << bufOffset.row << ", " << bufOffset.col
+            << "}" << std::endl;
+  drawBuffer();
+  drawCursors();
+  refresh();
+}
+
 void Pane::initiateSaveCommand() {
   paneFocus = PF_COMMAND;
   command = SAVE;
@@ -195,14 +212,168 @@ void Pane::handleTextKeypress(int keycode) {
     redraw();
   }
 }
-void Pane::drawSelectionCursor(const BufferCursor& cursor) {
-  // do nothing?
-}
-void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) {
+
+void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
-  int bufX = cursor.position.col;
-  int bufY = cursor.position.row;
+  int bufX = cursor.getCol();
+  int bufY = cursor.getRow();
+  if (bufX > (int)buf.lines[bufY].size()) {
+    bufX = buf.lines[bufY].size();
+  }
+  int gutterWidth = getGutterWidth();
+  int screenX = bufX - bufOffset.col + gutterWidth;
+  int screenY = bufY - bufOffset.row;
+  if (screenX < 4 + gutterWidth) {
+    bufOffset.col = std::max(bufX - 4, 0);
+  } else if (screenX >= maxX - 4) {
+    bufOffset.col = bufX - maxX + 5 + gutterWidth;
+  }
+  if (screenY < 0) {
+    bufOffset.row = bufY;
+  } else if (screenY >= maxY - 2) {
+    bufOffset.row = bufY - maxY + 3;
+  }
+}
+void Pane::adjustOffset() {
+  if (cursors.size() == 0)
+    return;
+  adjustOffsetToCursor(cursors[0]);
+}
+
+void Pane::drawBlankLine(int row, int maxX, PALETTES color) const {
+  wmove(window, row, 0);
+  wattron(window, COLOR_PAIR(color));
+  for (int col = 0; col < maxX; col++)
+    waddch(window, ' ');
+}
+void Pane::drawGutter(int row, int lineNumber, int gutterWidth) const {
+  wmove(window, row, 0);
+  char lineNumBuf[16];
+  int digits = std::snprintf(lineNumBuf, 16, "%d", lineNumber + 1);
+  wattron(window, COLOR_PAIR(N_GUTTER));
+  for (int col = 0; col < gutterWidth - 1; col++) {
+    int digit = gutterWidth - col - 2;
+    if (digit > digits - 1) {
+      waddch(window, ' ');
+      continue;
+    }
+    waddch(window, lineNumBuf[digits - 1 - digit]);
+  }
+  waddch(window, ' ');
+}
+void Pane::drawLine(int lineNumber, int startCol, int sz) const {
+  // TODO change to correct color for cursor selections
+  wattron(window, COLOR_PAIR(N_TEXT));
+  std::string line = buf.lines[lineNumber];
+  int lIndex = 0;
+  int screenX = 0;
+  // find the first character lIndex in line that is after startCol, accounting
+  // for tabs
+  while (screenX < startCol) {
+    if (line[lIndex] != '\t') {
+      screenX += 1;
+    } else {
+      int tabWidth = TABSTOPWIDTH - (screenX % TABSTOPWIDTH);
+      screenX += tabWidth;
+    }
+    lIndex++;
+  }
+  // if we overshot, add spaces from the tab that starts offscreen to left
+  while (screenX > startCol) {
+    waddch(window, ' ');
+    screenX--;
+  }
+  // for every cell in the terminal, add the appropriate character
+  for (int i = 0; i < sz; i++) {
+    if (lIndex >= (int)line.size()) {
+      waddch(window, ' ');
+    } else if (line[lIndex] != '\t') {
+      waddch(window, line.at(lIndex));
+    } else {
+      int tabWidth = TABSTOPWIDTH - ((i + startCol) % TABSTOPWIDTH);
+      for (int j = 0; j < tabWidth; j++) {
+        waddch(window, ' ');
+      }
+      i += (tabWidth - 1);
+    }
+    lIndex++;
+  }
+}
+void Pane::drawInfoRow(int maxX, int maxY) const {
+  int cursorRow = cursors[0].getRow();
+  int cursorCol = cursors[0].getCol();
+  const char* filename_cstr = filename.c_str();
+  int infoSz = std::snprintf(nullptr, 0, "%s (%d, %d)", filename_cstr,
+                             cursorRow, cursorCol) +
+               1;
+  if (infoSz > maxX)
+    infoSz = maxX;
+  std::unique_ptr<char[]> infoBuf(new char[infoSz]);
+  std::snprintf(infoBuf.get(), infoSz, "%s (%d, %d)", filename_cstr, cursorRow,
+                cursorCol);
+  wattron(window, COLOR_PAIR(N_INFO));
+  wmove(window, maxY - 2, 0);
+  for (int col = 0; col < maxX; col++) {
+    if (col < infoSz - 1) {
+      waddch(window, infoBuf.get()[col]);
+    } else {
+      waddch(window, ' ');
+    }
+  }
+}
+void Pane::drawCommandRow(int maxX, int maxY) const {
+  size_t promptSize = commandPrompt.size();
+  size_t argSize = userCommandArgs.size();
+  size_t commandSize = promptSize + argSize;
+  int cursorScreenX = promptSize + commandCursorPosition;
+  int offset = 0;
+  if (cursorScreenX > maxX) {
+    offset = cursorScreenX - maxX;
+  }
+  // draw the text
+  wattron(window, COLOR_PAIR(N_COMMAND));
+  wmove(window, maxY - 1, 0);
+  for (int col = 0; col < maxX; col++) {
+    int bufIndex = col + offset;
+    if (bufIndex <= (int)promptSize - 1) {
+      waddch(window, commandPrompt[bufIndex]);
+    } else if (bufIndex <= (int)commandSize - 1) {
+      waddch(window, userCommandArgs[bufIndex - promptSize]);
+    } else {
+      waddch(window, ' ');
+    }
+  }
+  // draw the cursor
+  if (paneFocus == PF_COMMAND) {
+    mvwchgat(window, maxY - 1, cursorScreenX - offset, 1, A_STANDOUT,
+             COLOR_PAIR(N_COMMAND), nullptr);
+  }
+}
+void Pane::drawBuffer() const {
+  if (buf.lines.size() == 0)
+    return;
+  int gutterWidth = getGutterWidth();
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  for (int row = 0; row < maxY - 2; row++) {
+    int lineNumber = row + bufOffset.row;
+    if (lineNumber >= (int)buf.lines.size()) {
+      drawBlankLine(row, maxX, N_TEXT);
+      continue;
+    }
+    drawGutter(row, lineNumber, gutterWidth);
+    drawLine(lineNumber, bufOffset.col, maxX - gutterWidth);
+  }
+  drawInfoRow(maxX, maxY);
+  drawCommandRow(maxX, maxY);
+}
+
+void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  int bufX = cursor.getCol();
+  int bufY = cursor.getRow();
   if (bufX > (int)buf.lines[bufY].size()) {
     bufX = buf.lines[bufY].size();
   }
@@ -240,203 +411,34 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) {
       screenY >= maxY - 2)
     return;
 
-  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+  // use standout
+  //  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+  // redraw with new color USE THIS FOR SELECTION
+  int c = mvwinch(window, screenY, screenX);
+  c = c & ~A_ATTRIBUTES;
+  wattron(window, COLOR_PAIR(N_HIGHLIGHT));
+  mvwaddch(window, screenY, screenX, c);
 }
-void Pane::drawCursors() {
-  for (BufferCursor& cursor : cursors) {
+void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
+  // do nothing?
+}
+void Pane::drawCursors() const {
+  for (const BufferCursor& cursor : cursors) {
     int gutterWidth = getGutterWidth();
-    if (cursor.position == cursor.tailPosition) {
-      drawSingleCursor(cursor, gutterWidth);
-    } else {
+    if (cursor.isSelection()) {
       drawSelectionCursor(cursor);
+    } else {
+      drawSingleCursor(cursor, gutterWidth);
     }
   }
 }
 
-int Pane::getGutterWidth() {
-  return getNumDigits(buf.lines.size()) + 1;
-}
-
-void Pane::drawBlankLine(int row, int maxX, PALETTES color) {
-  wmove(window, row, 0);
-  wattron(window, COLOR_PAIR(color));
-  for (int col = 0; col < maxX; col++)
-    waddch(window, ' ');
-}
-void Pane::drawGutter(int row, int lineNumber, int gutterWidth) {
-  wmove(window, row, 0);
-  char lineNumBuf[16];
-  int digits = std::snprintf(lineNumBuf, 16, "%d", lineNumber + 1);
-  wattron(window, COLOR_PAIR(N_GUTTER));
-  for (int col = 0; col < gutterWidth - 1; col++) {
-    int digit = gutterWidth - col - 2;
-    if (digit > digits - 1) {
-      waddch(window, ' ');
-      continue;
-    }
-    waddch(window, lineNumBuf[digits - 1 - digit]);
-  }
-  waddch(window, ' ');
-}
-void Pane::drawLine(int lineNumber, int startCol, int sz) {
-  wattron(window, COLOR_PAIR(N_TEXT));
-  std::string line = buf.lines[lineNumber];
-  int lIndex = 0;
-  int screenX = 0;
-  // find the first character lIndex in line that is after startCol, accounting
-  // for tabs
-  while (screenX < startCol) {
-    if (line[lIndex] != '\t') {
-      screenX += 1;
-    } else {
-      int tabWidth = TABSTOPWIDTH - (screenX % TABSTOPWIDTH);
-      screenX += tabWidth;
-    }
-    lIndex++;
-  }
-  // if we overshot, add spaces from the tab that starts offscreen to left
-  while (screenX > startCol) {
-    waddch(window, ' ');
-    screenX--;
-  }
-  // for every cell in the terminal, add the appropriate character
-  for (int i = 0; i < sz; i++) {
-    if (lIndex >= (int)line.size()) {
-      waddch(window, ' ');
-    } else if (line[lIndex] != '\t') {
-      waddch(window, line.at(lIndex));
-    } else {
-      int tabWidth = TABSTOPWIDTH - ((i + startCol) % TABSTOPWIDTH);
-      for (int j = 0; j < tabWidth; j++) {
-        waddch(window, ' ');
-      }
-      i += (tabWidth - 1);
-    }
-    lIndex++;
-  }
-}
-void Pane::drawInfoRow(int maxX, int maxY) {
-  int cursorRow = cursors[0].position.row;
-  int cursorCol = cursors[0].position.col;
-  const char* filename_cstr = filename.c_str();
-  int infoSz = std::snprintf(nullptr, 0, "%s (%d, %d)", filename_cstr,
-                             cursorRow, cursorCol) +
-               1;
-  if (infoSz > maxX)
-    infoSz = maxX;
-  std::unique_ptr<char[]> infoBuf(new char[infoSz]);
-  std::snprintf(infoBuf.get(), infoSz, "%s (%d, %d)", filename_cstr, cursorRow,
-                cursorCol);
-  wattron(window, COLOR_PAIR(N_INFO));
-  wmove(window, maxY - 2, 0);
-  for (int col = 0; col < maxX; col++) {
-    if (col < infoSz - 1) {
-      waddch(window, infoBuf.get()[col]);
-    } else {
-      waddch(window, ' ');
-    }
-  }
-}
-void Pane::drawCommandRow(int maxX, int maxY) {
-  size_t promptSize = commandPrompt.size();
-  size_t argSize = userCommandArgs.size();
-  size_t commandSize = promptSize + argSize;
-  int cursorScreenX = promptSize + commandCursorPosition;
-  int offset = 0;
-  if (cursorScreenX > maxX) {
-    offset = cursorScreenX - maxX;
-  }
-  // draw the text
-  wattron(window, COLOR_PAIR(N_COMMAND));
-  wmove(window, maxY - 1, 0);
-  for (int col = 0; col < maxX; col++) {
-    int bufIndex = col + offset;
-    if (bufIndex <= (int)promptSize - 1) {
-      waddch(window, commandPrompt[bufIndex]);
-    } else if (bufIndex <= (int)commandSize - 1) {
-      waddch(window, userCommandArgs[bufIndex - promptSize]);
-    } else {
-      waddch(window, ' ');
-    }
-  }
-  // draw the cursor
-  if (paneFocus == PF_COMMAND) {
-    mvwchgat(window, maxY - 1, cursorScreenX - offset, 1, A_STANDOUT,
-             COLOR_PAIR(N_COMMAND), nullptr);
-  }
-}
-void Pane::drawBuffer() {
-  if (buf.lines.size() == 0)
-    return;
-  int gutterWidth = getGutterWidth();
-  int maxX, maxY;
-  getmaxyx(window, maxY, maxX);
-  for (int row = 0; row < maxY - 2; row++) {
-    int lineNumber = row + bufOffset.row;
-    if (lineNumber >= (int)buf.lines.size()) {
-      drawBlankLine(row, maxX, N_TEXT);
-      continue;
-    }
-    drawGutter(row, lineNumber, gutterWidth);
-    drawLine(lineNumber, bufOffset.col, maxX - gutterWidth);
-  }
-  drawInfoRow(maxX, maxY);
-  drawCommandRow(maxX, maxY);
-}
-void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
-  int maxX, maxY;
-  getmaxyx(window, maxY, maxX);
-  int bufX = cursor.position.col;
-  int bufY = cursor.position.row;
-  if (bufX > (int)buf.lines[bufY].size()) {
-    bufX = buf.lines[bufY].size();
-  }
-  int gutterWidth = getGutterWidth();
-  int screenX = bufX - bufOffset.col + gutterWidth;
-  int screenY = bufY - bufOffset.row;
-  if (screenX < 4 + gutterWidth) {
-    bufOffset.col = std::max(bufX - 4, 0);
-  } else if (screenX >= maxX - 4) {
-    bufOffset.col = bufX - maxX + 5 + gutterWidth;
-  }
-  if (screenY < 0) {
-    bufOffset.row = bufY;
-  } else if (screenY >= maxY - 2) {
-    bufOffset.row = bufY - maxY + 3;
-  }
-}
-void Pane::adjustOffset() {
-  if (cursors.size() == 0)
-    return;
-  adjustOffsetToCursor(cursors[0]);
-}
-
-void Pane::setOffset(size_t row, size_t col) {
-  bufOffset.row = row;
-  bufOffset.col = col;
-}
-
-void Pane::refresh() {
+void Pane::refresh() const {
   doupdate();
 }
-void Pane::erase() {
+void Pane::erase() const {
   werase(window);
 }
-
-int Pane::getKeypress() {
-  return wgetch(window);
-}
-
-void Pane::loadFromFile(const std::string& iFilename) {
-  buf.loadFromFile(iFilename);
-  filename = iFilename;
-}
-
-void Pane::redraw() {
-  adjustOffset();
-  std::cout << "bufOffset{row,col}: {" << bufOffset.row << ", " << bufOffset.col
-            << "}" << std::endl;
-  drawBuffer();
-  drawCursors();
-  refresh();
+int Pane::getGutterWidth() const {
+  return getNumDigits(buf.lines.size()) + 1;
 }

@@ -14,61 +14,6 @@ void BufferCursor::selectSet(int x, int y) {
   position.row = y;
   position.col = x;
 }
-void BufferCursor::selectRight(const EditBuffer& buf) {
-  if (buf.lines.size() == 0) {
-    selectSet(0, 0);
-    return;
-  }
-  int newX = position.col + 1;
-  int newY = position.row;
-  if (newY < 0)
-    newY = 0;
-  if (newY >= (int)buf.lines.size())
-    newY = buf.lines.size() - 1;
-  bool isPastEOL = newX > (int)buf.lines[newY].size();
-  if (!isPastEOL) {
-    selectSet(newX, newY);
-    return;
-  }
-  // handle past EOL
-  if (newY == (int)buf.lines.size() - 1) {
-    // we are already at the bottom, just reset X to EOL;
-    newX = (int)buf.lines[newY].size();
-    selectSet(newX, newY);
-    return;
-  }
-  newY++;
-  newX = 0;
-  selectSet(newX, newY);
-}
-void BufferCursor::selectLeft(const EditBuffer& buf) {
-  if (buf.lines.size() == 0) {
-    selectSet(0, 0);
-    return;
-  }
-  int newX = position.col - 1;
-  int newY = position.row;
-  if (newY < 0)
-    newY = 0;
-  if (newY >= (int)buf.lines.size())
-    newY = buf.lines.size() - 1;
-  if (position.col > buf.lines[newY].size()) {
-    newX = std::max(0, (int)buf.lines[newY].size() - 1);
-    selectSet(newX, newY);
-    return;
-  }
-  if (newX >= 0) {
-    selectSet(newX, newY);
-    return;
-  }
-  if (newY == 0) {
-    selectSet(0, 0);
-    return;
-  }
-  newY--;
-  newX = buf.lines[newY].size();
-  selectSet(newX, newY);
-}
 void BufferCursor::selectUp(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
     selectSet(0, 0);
@@ -100,6 +45,61 @@ void BufferCursor::selectDown(const EditBuffer& buf) {
     newY = buf.lines.size() - 1;
   selectSet(newX, newY);
 }
+void BufferCursor::selectLeft(const EditBuffer& buf) {
+  if (buf.lines.size() == 0) {
+    selectSet(0, 0);
+    return;
+  }
+  int newX = position.col - 1;
+  int newY = position.row;
+  if (newY < 0)
+    newY = 0;
+  if (newY >= (int)buf.lines.size())
+    newY = buf.lines.size() - 1;
+  if (position.col > buf.lines[newY].size()) {
+    newX = std::max(0, (int)buf.lines[newY].size() - 1);
+    selectSet(newX, newY);
+    return;
+  }
+  if (newX >= 0) {
+    selectSet(newX, newY);
+    return;
+  }
+  if (newY == 0) {
+    selectSet(0, 0);
+    return;
+  }
+  newY--;
+  newX = buf.lines[newY].size();
+  selectSet(newX, newY);
+}
+void BufferCursor::selectRight(const EditBuffer& buf) {
+  if (buf.lines.size() == 0) {
+    selectSet(0, 0);
+    return;
+  }
+  int newX = position.col + 1;
+  int newY = position.row;
+  if (newY < 0)
+    newY = 0;
+  if (newY >= (int)buf.lines.size())
+    newY = buf.lines.size() - 1;
+  bool isPastEOL = newX > (int)buf.lines[newY].size();
+  if (!isPastEOL) {
+    selectSet(newX, newY);
+    return;
+  }
+  // handle past EOL
+  if (newY == (int)buf.lines.size() - 1) {
+    // we are already at the bottom, just reset X to EOL;
+    newX = (int)buf.lines[newY].size();
+    selectSet(newX, newY);
+    return;
+  }
+  newY++;
+  newX = 0;
+  selectSet(newX, newY);
+}
 void BufferCursor::moveUp(const EditBuffer& buf) {
   selectUp(buf);
   tailPosition = position;
@@ -116,7 +116,19 @@ void BufferCursor::moveRight(const EditBuffer& buf) {
   selectRight(buf);
   tailPosition = position;
 }
-
-bool operator==(const BufferPosition& a, const BufferPosition& b) {
-  return a.row == b.row && a.col == b.col;
+size_t BufferCursor::getRow() const {
+  return position.row;
+}
+size_t BufferCursor::getCol() const {
+  return position.col;
+}
+size_t BufferCursor::getTailRow() const {
+  return tailPosition.row;
+}
+size_t BufferCursor::getTailCol() const {
+  return tailPosition.col;
+}
+bool BufferCursor::isSelection() const {
+  return (position.row != tailPosition.row) ||
+         (position.col != tailPosition.col);
 }
