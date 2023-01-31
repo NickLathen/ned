@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-enum PALETTES { N_TEXT = 1, N_GUTTER, N_INFO, N_COMMAND };
+enum PALETTES { N_TEXT = 1, N_GUTTER, N_INFO, N_COMMAND, N_HIGHLIGHT };
 
 class BufferCursor;
 
@@ -31,13 +31,21 @@ class BufferCursor {
  public:
   BufferCursor();
   BufferCursor(BufferPosition pos);
-  void moveRight(const EditBuffer& buf);
-  void moveLeft(const EditBuffer& buf);
+  void selectUp(const EditBuffer& buf);
+  void selectDown(const EditBuffer& buf);
+  void selectLeft(const EditBuffer& buf);
+  void selectRight(const EditBuffer& buf);
   void moveUp(const EditBuffer& buf);
   void moveDown(const EditBuffer& buf);
+  void moveLeft(const EditBuffer& buf);
+  void moveRight(const EditBuffer& buf);
+
   void moveSet(int x, int y);
+  void selectSet(int x, int y);
   BufferPosition position{};
+  BufferPosition tailPosition{};
 };
+bool operator==(const BufferPosition& a, const BufferPosition& b);
 
 class Pane {
  public:
@@ -72,10 +80,12 @@ class Pane {
   void setOffset(size_t row, size_t col);
   void drawBlankLine(int row, int maxX, PALETTES color);
   void drawGutter(int row, int lineNumber, int gutterWidth);
-  void drawLine(int lineNumber, int startCol, int sz, PALETTES color);
+  void drawLine(int lineNumber, int startCol, int sz);
   void drawInfoRow(int maxX, int maxY);
   void drawCommandRow(int maxX, int maxY);
   void drawBuffer();
+  void drawSingleCursor(const BufferCursor& cursor, int gutterWidth);
+  void drawSelectionCursor(const BufferCursor& cursor);
   void drawCursors();
   void refresh();
   void erase();

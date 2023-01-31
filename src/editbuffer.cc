@@ -24,8 +24,7 @@ void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
   } else {
     lines.insert(lines.begin() + cRow + 1, newLineText);
   }
-  cursor.position.row = cRow + 1;
-  cursor.position.col = 0;
+  cursor.moveSet(0, cRow + 1);
 }
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   // ignore selections for now;
@@ -50,7 +49,7 @@ void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
     // remove the character
     lines[cRow].erase(lines[cRow].begin() + cCol - 1);
     // move cursor back
-    cursor.position.col = cCol - 1;
+    cursor.moveSet(cCol - 1, cRow);
   }
 }
 void EditBuffer::deleteAtCursor(const BufferCursor& cursor) {
@@ -95,7 +94,7 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
         lines[cRow].replace(cCol, tab.size(), tab);
         lines[cRow].replace(cCol + tab.size(), end.size(), end);
       }
-      cursor.position.col = cCol + tab.size();
+      cursor.moveSet(cCol + tab.size(), cRow);
       break;
     default:
       if (cCol >= (int)lines[cRow].size()) {
@@ -103,7 +102,7 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
       } else {
         lines[cRow].insert(lines[cRow].begin() + cCol, char(keycode));
       }
-      cursor.position.col = cCol + 1;
+      cursor.moveSet(cCol + 1, cRow);
       break;
   }
 }

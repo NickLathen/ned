@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   chdir(toDirectory(argv[0]).c_str());
 
   coutBackup = std::cout.rdbuf();
-  std::ofstream logfile("log.txt");
+  std::ofstream logfile("log.txt", std::ios_base::out | std::ios_base::trunc);
   std::cout.rdbuf(logfile.rdbuf());
 
   signal(SIGINT, signal_callback_handler);
@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
   init_pair(N_GUTTER, 247, 236);
   init_pair(N_INFO, 0, 15);
   init_pair(N_COMMAND, 15, 234);
+  init_pair(N_HIGHLIGHT, 11, 21);
   WINDOW* textPane = newwin(0, 0, 0, 0);
   std::cout << "LINES=" << LINES << std::endl;
   std::cout << "COLS=" << COLS << std::endl;

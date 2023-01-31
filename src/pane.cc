@@ -156,6 +156,30 @@ void Pane::handleTextKeypress(int keycode) {
         c.moveRight(buf);
       }
       break;
+    case SHIFT_UP:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectUp(buf);
+      }
+      break;
+    case SHIFT_DOWN:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectDown(buf);
+      }
+      break;
+    case SHIFT_LEFT:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectLeft(buf);
+      }
+      break;
+    case SHIFT_RIGHT:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectRight(buf);
+      }
+      break;
     default:
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||
           keycode == BACKSPACE || keycode == DELETE || keycode == TAB) {
@@ -171,51 +195,61 @@ void Pane::handleTextKeypress(int keycode) {
     redraw();
   }
 }
-void Pane::drawCursors() {
-  int gutterWidth = getGutterWidth();
-  for (BufferCursor& c : cursors) {
-    int maxX, maxY;
-    getmaxyx(window, maxY, maxX);
-    int bufX = c.position.col;
-    int bufY = c.position.row;
-    if (bufX > (int)buf.lines[bufY].size()) {
-      bufX = buf.lines[bufY].size();
-    }
-    int distance = 0;
-    int cursorDistance = -1;
-    int leftScreenDistance = -1;
-    for (int i = 0; i < (int)buf.lines[bufY].size(); i++) {
-      if (i == bufX)
-        cursorDistance = distance;
-      if (i == (int)bufOffset.col)
-        leftScreenDistance = distance;
-      if (cursorDistance >= 0 && leftScreenDistance >= 0)
-        break;
-      if (buf.lines[bufY][i] == '\t') {
-        int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
-        distance += tabWidth;
-      } else {
-        distance += 1;
-      }
-    }
-    if (leftScreenDistance < 0) {
-      if (buf.lines[bufY].size() == 0 && bufOffset.col == 0) {
-        leftScreenDistance = 0;
-      } else {
-        return;  // line doesn't appear on screen
-      }
-    }
-    if (cursorDistance < 0)
+void Pane::drawSelectionCursor(const BufferCursor& cursor) {
+  // do nothing?
+}
+void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) {
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  int bufX = cursor.position.col;
+  int bufY = cursor.position.row;
+  if (bufX > (int)buf.lines[bufY].size()) {
+    bufX = buf.lines[bufY].size();
+  }
+  int distance = 0;
+  int cursorDistance = -1;
+  int leftScreenDistance = -1;
+  for (int i = 0; i < (int)buf.lines[bufY].size(); i++) {
+    if (i == bufX)
       cursorDistance = distance;
+    if (i == (int)bufOffset.col)
+      leftScreenDistance = distance;
+    if (cursorDistance >= 0 && leftScreenDistance >= 0)
+      break;
+    if (buf.lines[bufY][i] == '\t') {
+      int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
+      distance += tabWidth;
+    } else {
+      distance += 1;
+    }
+  }
+  if (leftScreenDistance < 0) {
+    if (buf.lines[bufY].size() == 0 && bufOffset.col == 0) {
+      leftScreenDistance = 0;
+    } else {
+      return;  // line doesn't appear on screen
+    }
+  }
+  if (cursorDistance < 0)
+    cursorDistance = distance;
 
-    int screenX = gutterWidth + (cursorDistance - leftScreenDistance);
-    int screenY = bufY - bufOffset.row;
-    // ignore offscreen
-    if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
-        screenY >= maxY - 2)
-      return;
+  int screenX = gutterWidth + (cursorDistance - leftScreenDistance);
+  int screenY = bufY - bufOffset.row;
+  // ignore offscreen
+  if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
+      screenY >= maxY - 2)
+    return;
 
-    mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
+}
+void Pane::drawCursors() {
+  for (BufferCursor& cursor : cursors) {
+    int gutterWidth = getGutterWidth();
+    if (cursor.position == cursor.tailPosition) {
+      drawSingleCursor(cursor, gutterWidth);
+    } else {
+      drawSelectionCursor(cursor);
+    }
   }
 }
 
@@ -244,8 +278,8 @@ void Pane::drawGutter(int row, int lineNumber, int gutterWidth) {
   }
   waddch(window, ' ');
 }
-void Pane::drawLine(int lineNumber, int startCol, int sz, PALETTES color) {
-  wattron(window, COLOR_PAIR(color));
+void Pane::drawLine(int lineNumber, int startCol, int sz) {
+  wattron(window, COLOR_PAIR(N_TEXT));
   std::string line = buf.lines[lineNumber];
   int lIndex = 0;
   int screenX = 0;
@@ -344,7 +378,7 @@ void Pane::drawBuffer() {
       continue;
     }
     drawGutter(row, lineNumber, gutterWidth);
-    drawLine(lineNumber, bufOffset.col, maxX - gutterWidth, N_TEXT);
+    drawLine(lineNumber, bufOffset.col, maxX - gutterWidth);
   }
   drawInfoRow(maxX, maxY);
   drawCommandRow(maxX, maxY);
