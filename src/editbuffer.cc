@@ -10,12 +10,9 @@ EditBuffer::EditBuffer(std::vector<std::string>&& l) : lines{l} {
   }
 }
 void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
-  int cRow = cursor.getRow();
-  int cCol = cursor.getCol();
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  const static std::string tab = "\t";
   switch (keycode) {
     case CARRIAGE_RETURN:
       carriageReturnAtCursor(cursor);
@@ -27,28 +24,14 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
       deleteAtCursor(cursor);
       break;
     case TAB:
-      if (cCol >= (int)lines[cRow].size()) {
-        lines[cRow].append(tab);
-      } else {
-        std::string end =
-            lines[cRow].substr(cCol, (int)lines[cRow].size() - cCol);
-        lines[cRow].resize(lines[cRow].size() + tab.size());
-        lines[cRow].replace(cCol, tab.size(), tab);
-        lines[cRow].replace(cCol + tab.size(), end.size(), end);
-      }
-      cursor.moveSet(cCol + tab.size(), cRow);
+      tabAtCursor(cursor);
       break;
     default:
-      if (cCol >= (int)lines[cRow].size()) {
-        lines[cRow].push_back((char)keycode);
-      } else {
-        lines[cRow].insert(lines[cRow].begin() + cCol, char(keycode));
-      }
-      cursor.moveSet(cCol + 1, cRow);
+      insertCharAtCursor(cursor, keycode);
       break;
   }
 }
-void EditBuffer::loadFromFile(const std::string filename) {
+void EditBuffer::loadFromFile(const std::string& filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
     std::cout << "ERROR:loadFile Failed to open: " << filename << std::endl;
@@ -62,6 +45,17 @@ void EditBuffer::loadFromFile(const std::string filename) {
   }
   ifile.close();
 }
+void EditBuffer::insertCharAtCursor(BufferCursor& cursor, int keycode) {
+  int cRow = cursor.getRow();
+  int cCol = cursor.getCol();
+  if (cCol >= (int)lines[cRow].size()) {
+    lines[cRow].push_back((char)keycode);
+  } else {
+    lines[cRow].insert(lines[cRow].begin() + cCol, (char)keycode);
+  }
+  cursor.moveSet(cCol + 1, cRow);
+};
+
 void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
@@ -120,3 +114,17 @@ void EditBuffer::deleteAtCursor(const BufferCursor& cursor) {
     lines[cRow].erase(lines[cRow].begin() + cCol);
   }
 }
+void EditBuffer::tabAtCursor(BufferCursor& cursor) {
+  int cRow = cursor.getRow();
+  int cCol = cursor.getCol();
+  const static std::string tab = "\t";
+  if (cCol >= (int)lines[cRow].size()) {
+    lines[cRow].append(tab);
+  } else {
+    std::string end = lines[cRow].substr(cCol, (int)lines[cRow].size() - cCol);
+    lines[cRow].resize(lines[cRow].size() + tab.size());
+    lines[cRow].replace(cCol, tab.size(), tab);
+    lines[cRow].replace(cCol + tab.size(), end.size(), end);
+  }
+  cursor.moveSet(cCol + tab.size(), cRow);
+};

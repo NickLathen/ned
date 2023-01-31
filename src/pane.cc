@@ -75,7 +75,7 @@ void Pane::initiateOpenCommand() {
   commandCursorPosition = 0;
   redraw();
 }
-void Pane::saveBufferToFile(std::string saveTarget) {
+void Pane::saveBufferToFile(const std::string& saveTarget) const {
   std::ofstream saveFile{"ned.tmp", std::ios_base::trunc | std::ios_base::out};
   for (size_t line = 0; line < buf.lines.size(); line++) {
     for (size_t col = 0; col < buf.lines[line].size(); col++) {

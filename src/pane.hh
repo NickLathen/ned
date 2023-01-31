@@ -25,12 +25,14 @@ class EditBuffer {
   EditBuffer(std::vector<std::string>&& lines);
   std::vector<std::string> lines{""};
   void insertAtCursor(BufferCursor& cursor, int keycode);
-  void loadFromFile(std::string filename);
+  void loadFromFile(const std::string& filename);
 
  private:
+  void insertCharAtCursor(BufferCursor& cursor, int keycode);
   void carriageReturnAtCursor(BufferCursor& cursor);
   void backspaceAtCursor(BufferCursor& cursor);
   void deleteAtCursor(const BufferCursor& cursor);
+  void tabAtCursor(BufferCursor& cursor);
 };
 
 class BufferCursor {
@@ -83,7 +85,7 @@ class Pane {
   std::vector<BufferCursor> cursors{BufferCursor{}};
   void initiateSaveCommand();
   void initiateOpenCommand();
-  void saveBufferToFile(std::string saveTarget);
+  void saveBufferToFile(const std::string& saveTarget) const;
   void handleCommandKeypress(int keycode);
   void handleTextKeypress(int keycode);
 
