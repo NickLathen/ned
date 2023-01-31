@@ -116,6 +116,12 @@ void BufferCursor::moveRight(const EditBuffer& buf) {
   selectRight(buf);
   tailPosition = position;
 }
+BufferPosition BufferCursor::getPosition() const {
+  return position;
+}
+BufferPosition BufferCursor::getTailPosition() const {
+  return tailPosition;
+}
 size_t BufferCursor::getRow() const {
   return position.row;
 }
@@ -127,8 +133,4 @@ size_t BufferCursor::getTailRow() const {
 }
 size_t BufferCursor::getTailCol() const {
   return tailPosition.col;
-}
-bool BufferCursor::isSelection() const {
-  return (position.row != tailPosition.row) ||
-         (position.col != tailPosition.col);
 }

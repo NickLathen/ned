@@ -1,4 +1,5 @@
 #include "pane.hh"
+#include <assert.h>
 #include <ncurses.h>
 #include <fstream>
 #include <iostream>
@@ -411,21 +412,86 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
       screenY >= maxY - 2)
     return;
 
-  // use standout
-  //  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
-  // redraw with new color USE THIS FOR SELECTION
-  int c = mvwinch(window, screenY, screenX);
-  c = c & ~A_ATTRIBUTES;
-  wattron(window, COLOR_PAIR(N_HIGHLIGHT));
-  mvwaddch(window, screenY, screenX, c);
+  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, 0, nullptr);
 }
 void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
-  // do nothing?
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
+  BufferPosition start =
+      std::min(cursor.getPosition(), cursor.getTailPosition());
+  BufferPosition end = std::max(cursor.getPosition(), cursor.getTailPosition());
+  int gutterWidth = getGutterWidth();
+  for (size_t row = start.row; row <= end.row; row++) {
+    int screenY = row - bufOffset.row;
+    if (screenY < 0 || screenY >= maxY - 2)
+      continue;  // row is offscreen
+    int selStartCol, selEndCol;
+    if (start.row < row) {
+      selStartCol = 0;
+    } else if (start.row == row) {
+      selStartCol = start.col;
+    } else {
+      assert(false);
+    }
+    if (end.row > row) {
+      selEndCol = buf.lines[row].size() - 1;
+    } else if (end.row == row) {
+      selEndCol = end.col;
+    } else {
+      assert(false);
+    }
+    if (selEndCol > (int)buf.lines[row].size()) {
+      selEndCol = buf.lines[row].size();
+    }
+
+    int distance = 0;
+    int startDistance = -1;
+    int endDistance = -1;
+    for (int i = 0; i < (int)buf.lines[row].size(); i++) {
+      if (i == selStartCol)
+        startDistance = distance;
+      if (i == selEndCol)
+        endDistance = distance;
+      if (startDistance >= 0 && endDistance >= 0)
+        break;
+      if (buf.lines[row][i] == '\t') {
+        int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
+        distance += tabWidth;
+      } else {
+        distance += 1;
+      }
+    }
+    if (endDistance == -1)
+      endDistance = distance;
+    if (startDistance == -1)
+      startDistance =
+          distance;  // TODO this should get us a highlight when
+                     // selecting from the very end of a line -- also it DOES
+                     // give us a highlight when selecting from beginning of a
+                     // line which is not correct
+    int screenStartX = startDistance + gutterWidth - bufOffset.col;
+    int screenEndX = endDistance + gutterWidth - bufOffset.col;
+    if (screenStartX > maxX - 1)
+      continue;  // starts offscreen to right
+    if (screenEndX < gutterWidth)
+      continue;  // ends offscreen to left
+    if (screenStartX < gutterWidth)
+      screenStartX = gutterWidth;
+    if (screenEndX > maxX - 1)
+      screenEndX = maxX - 1;
+    wattron(window, COLOR_PAIR(N_HIGHLIGHT));
+    for (int col = screenStartX; col <= screenEndX; col++) {
+      // TODO do this in bulk somehow?
+      int c = mvwinch(window, screenY, col);
+      c = c & ~A_ATTRIBUTES;
+      mvwaddch(window, screenY, col, c);
+    }
+  }
 }
 void Pane::drawCursors() const {
   for (const BufferCursor& cursor : cursors) {
     int gutterWidth = getGutterWidth();
-    if (cursor.isSelection()) {
+    if (cursor.getPosition() != cursor.getTailPosition()) {
       drawSelectionCursor(cursor);
     } else {
       drawSingleCursor(cursor, gutterWidth);

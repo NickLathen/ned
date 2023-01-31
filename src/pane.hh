@@ -11,6 +11,12 @@ class BufferCursor;
 struct BufferPosition {
   size_t row{}, col{};
 };
+bool operator==(const BufferPosition&, const BufferPosition&);
+bool operator!=(const BufferPosition&, const BufferPosition&);
+bool operator<(const BufferPosition&, const BufferPosition&);
+bool operator<=(const BufferPosition&, const BufferPosition&);
+bool operator>(const BufferPosition&, const BufferPosition&);
+bool operator>=(const BufferPosition&, const BufferPosition&);
 
 // data from file
 class EditBuffer {
@@ -41,17 +47,17 @@ class BufferCursor {
   void moveDown(const EditBuffer& buf);
   void moveLeft(const EditBuffer& buf);
   void moveRight(const EditBuffer& buf);
+  BufferPosition getPosition() const;
+  BufferPosition getTailPosition() const;
   size_t getRow() const;
   size_t getCol() const;
   size_t getTailRow() const;
   size_t getTailCol() const;
-  bool isSelection() const;
 
  private:
   BufferPosition position{};
   BufferPosition tailPosition{};
 };
-bool operator==(const BufferPosition& a, const BufferPosition& b);
 
 class Pane {
  public:

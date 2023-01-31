@@ -7,7 +7,7 @@ STD=--std=c++17
 LDLIBS=-lstdc++ -lncurses
 CXXFLAGS=$(STD) $(WARNALL) $(DEBUG)
 
-ned : src/buffercursor.o src/editbuffer.o src/pane.o src/ned.o
+ned : src/bufferposition.o src/buffercursor.o src/editbuffer.o src/pane.o src/ned.o
 	$(CXX) $^ -o $@ $(LDLIBS)
 
 clean:
