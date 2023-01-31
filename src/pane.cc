@@ -181,7 +181,34 @@ void Pane::drawCursors() {
     if (bufX > (int)buf.lines[bufY].size()) {
       bufX = buf.lines[bufY].size();
     }
-    int screenX = bufX - bufOffset.col + gutterWidth;
+    int distance = 0;
+    int cursorDistance = -1;
+    int leftScreenDistance = -1;
+    for (int i = 0; i < (int)buf.lines[bufY].size(); i++) {
+      if (i == bufX)
+        cursorDistance = distance;
+      if (i == (int)bufOffset.col)
+        leftScreenDistance = distance;
+      if (cursorDistance >= 0 && leftScreenDistance >= 0)
+        break;
+      if (buf.lines[bufY][i] == '\t') {
+        int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
+        distance += tabWidth;
+      } else {
+        distance += 1;
+      }
+    }
+    if (leftScreenDistance < 0) {
+      if (buf.lines[bufY].size() == 0 && bufOffset.col == 0) {
+        leftScreenDistance = 0;
+      } else {
+        return;  // line doesn't appear on screen
+      }
+    }
+    if (cursorDistance < 0)
+      cursorDistance = distance;
+
+    int screenX = gutterWidth + (cursorDistance - leftScreenDistance);
     int screenY = bufY - bufOffset.row;
     // ignore offscreen
     if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
@@ -218,14 +245,40 @@ void Pane::drawGutter(int row, int lineNumber, int gutterWidth) {
   waddch(window, ' ');
 }
 void Pane::drawLine(int lineNumber, int startCol, int sz, PALETTES color) {
-  std::string line = buf.lines[lineNumber];
   wattron(window, COLOR_PAIR(color));
-  for (int i = startCol; i < startCol + sz; i++) {
-    if (i >= (int)line.size()) {
-      waddch(window, ' ');
+  std::string line = buf.lines[lineNumber];
+  int lIndex = 0;
+  int screenX = 0;
+  // find the first character lIndex in line that is after startCol, accounting
+  // for tabs
+  while (screenX < startCol) {
+    if (line[lIndex] != '\t') {
+      screenX += 1;
     } else {
-      waddch(window, line.at(i));
+      int tabWidth = TABSTOPWIDTH - (screenX % TABSTOPWIDTH);
+      screenX += tabWidth;
     }
+    lIndex++;
+  }
+  // if we overshot, add spaces from the tab that starts offscreen to left
+  while (screenX > startCol) {
+    waddch(window, ' ');
+    screenX--;
+  }
+  // for every cell in the terminal, add the appropriate character
+  for (int i = 0; i < sz; i++) {
+    if (lIndex >= (int)line.size()) {
+      waddch(window, ' ');
+    } else if (line[lIndex] != '\t') {
+      waddch(window, line.at(lIndex));
+    } else {
+      int tabWidth = TABSTOPWIDTH - ((i + startCol) % TABSTOPWIDTH);
+      for (int j = 0; j < tabWidth; j++) {
+        waddch(window, ' ');
+      }
+      i += (tabWidth - 1);
+    }
+    lIndex++;
   }
 }
 void Pane::drawInfoRow(int maxX, int maxY) {

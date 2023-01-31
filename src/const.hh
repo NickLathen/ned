@@ -8,4 +8,6 @@
 #define BACKSPACE 263
 #define DELETE 330
 
+#define TABSTOPWIDTH 4
+
 void signal_callback_handler(int signum);
