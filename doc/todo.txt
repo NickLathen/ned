@@ -37,5 +37,10 @@ Changelog:
       typing [X]
       newline [X]
       delete[X]
-      open from file
-      save to file
+  2021-01-30
+      open from file[x]
+      save to file[x]
+      tab handling[]
+        render text
+        render cursor
+        handle operations around tab characters?

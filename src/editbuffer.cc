@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <string>
 #include "const.hh"
 #include "pane.hh"
 
@@ -75,6 +74,7 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
+  const static std::string tab = "\t";
   switch (keycode) {
     case CARRIAGE_RETURN:
       carriageReturnAtCursor(cursor);
@@ -85,6 +85,18 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
     case DELETE:
       deleteAtCursor(cursor);
       break;
+    case TAB:
+      if (cCol >= (int)lines[cRow].size()) {
+        lines[cRow].append(tab);
+      } else {
+        std::string end =
+            lines[cRow].substr(cCol, (int)lines[cRow].size() - cCol);
+        lines[cRow].resize(lines[cRow].size() + tab.size());
+        lines[cRow].replace(cCol, tab.size(), tab);
+        lines[cRow].replace(cCol + tab.size(), end.size(), end);
+      }
+      cursor.position.col = cCol + tab.size();
+      break;
     default:
       if (cCol >= (int)lines[cRow].size()) {
         lines[cRow].push_back((char)keycode);
@@ -92,6 +104,7 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
         lines[cRow].insert(lines[cRow].begin() + cCol, char(keycode));
       }
       cursor.position.col = cCol + 1;
+      break;
   }
 }
 void EditBuffer::loadFromFile(const std::string filename) {

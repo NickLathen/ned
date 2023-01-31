@@ -1,13 +1,8 @@
 #include <ncurses.h>
-#include <panel.h>
 #include <signal.h>
-#include <time.h>
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
-#include <sstream>
-#include <utility>
-#include <vector>
 #include "const.hh"
 #include "pane.hh"
 

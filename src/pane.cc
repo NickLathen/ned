@@ -1,6 +1,5 @@
 #include "pane.hh"
 #include <ncurses.h>
-#include <panel.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -159,7 +158,7 @@ void Pane::handleTextKeypress(int keycode) {
       break;
     default:
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||
-          keycode == BACKSPACE || keycode == DELETE) {
+          keycode == BACKSPACE || keycode == DELETE || keycode == TAB) {
         isHandledPress = true;
         // the keycode is printable or a carriage return
         for (BufferCursor& c : cursors) {
@@ -331,7 +330,6 @@ void Pane::setOffset(size_t row, size_t col) {
 }
 
 void Pane::refresh() {
-  update_panels();
   doupdate();
 }
 void Pane::erase() {
