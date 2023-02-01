@@ -13,15 +13,20 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
+  bool isSelection = cursor.getPosition() != cursor.getTailPosition();
+  if (isSelection)
+    clearSelection(cursor);
   switch (keycode) {
     case CARRIAGE_RETURN:
       carriageReturnAtCursor(cursor);
       break;
     case BACKSPACE:
-      backspaceAtCursor(cursor);
+      if (!isSelection)
+        backspaceAtCursor(cursor);
       break;
     case DELETE:
-      deleteAtCursor(cursor);
+      if (!isSelection)
+        deleteAtCursor(cursor);
       break;
     case TAB:
       tabAtCursor(cursor);
@@ -31,6 +36,7 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
       break;
   }
 }
+
 void EditBuffer::loadFromFile(const std::string& filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
@@ -54,7 +60,7 @@ void EditBuffer::insertCharAtCursor(BufferCursor& cursor, int keycode) {
     lines[cRow].insert(lines[cRow].begin() + cCol, (char)keycode);
   }
   cursor.moveSet(cCol + 1, cRow);
-};
+}
 
 void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
@@ -127,4 +133,30 @@ void EditBuffer::tabAtCursor(BufferCursor& cursor) {
     lines[cRow].replace(cCol + tab.size(), end.size(), end);
   }
   cursor.moveSet(cCol + tab.size(), cRow);
-};
+}
+
+void EditBuffer::clearSelection(BufferCursor& cursor) {
+  BufferPosition start =
+      std::min(cursor.getPosition(), cursor.getTailPosition());
+  BufferPosition end = std::max(cursor.getPosition(), cursor.getTailPosition());
+  if (start == end)
+    return;
+  if (start.col > lines[start.row].size()) {
+    start.col = lines[start.row].size();
+  }
+  if (end.col > lines[end.row].size()) {
+    end.col = lines[end.row].size();
+  }
+  if (start.row == end.row) {
+    // single row
+    lines[start.row].erase(lines[start.row].begin() + start.col,
+                           lines[start.row].begin() + end.col);
+  } else {
+    // multi-row
+    std::string tailString = lines[end.row].substr(end.col);
+    lines[start.row].replace(start.col, lines[start.row].size() - start.col,
+                             tailString);
+    lines.erase(lines.begin() + start.row + 1, lines.begin() + end.row + 1);
+  }
+  cursor.moveSet(start.col, start.row);
+}

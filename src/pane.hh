@@ -33,14 +33,15 @@ class EditBuffer {
   void backspaceAtCursor(BufferCursor& cursor);
   void deleteAtCursor(const BufferCursor& cursor);
   void tabAtCursor(BufferCursor& cursor);
+  void clearSelection(BufferCursor& cursor);
 };
 
 class BufferCursor {
  public:
   BufferCursor();
   BufferCursor(BufferPosition pos);
-  void moveSet(int x, int y);
-  void selectSet(int x, int y);
+  void moveSet(int col, int row);
+  void selectSet(int col, int row);
   void selectUp(const EditBuffer& buf);
   void selectDown(const EditBuffer& buf);
   void selectLeft(const EditBuffer& buf);

@@ -462,11 +462,7 @@ void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
     if (endDistance == -1)
       endDistance = distance;
     if (startDistance == -1)
-      startDistance =
-          distance;  // TODO this should get us a highlight when
-                     // selecting from the very end of a line -- also it DOES
-                     // give us a highlight when selecting from beginning of a
-                     // line which is not correct
+      startDistance = distance;
     int screenStartX = startDistance + gutterWidth - bufOffset.col;
     int screenEndX = endDistance + gutterWidth - bufOffset.col;
     if (screenStartX > maxX - 1)
