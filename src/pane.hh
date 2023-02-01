@@ -25,7 +25,7 @@ class EditBuffer {
   EditBuffer();
   EditBuffer(std::vector<std::string>&& lines);
   std::vector<std::string> lines{""};
-  void insertAtCursor(BufferCursor& cursor, int keycode);
+  void insertAtCursors(std::vector<BufferCursor>& cursors, int keycode);
   void loadFromFile(const std::string& filename);
 
  private:
@@ -66,9 +66,9 @@ enum BufOpType { BO_INSERT, BO_BACKSPACE, BO_DELETE };
 
 class BufferOperation {
  public:
-  BufferOperation(BufferCursor& cursor, std::string& text, BufOpType ot);
-  BufferOperation(BufferCursor& cursor, std::string&& text, BufOpType ot);
-  BufferCursor targetCursor{};
+  BufferOperation(std::vector<BufferCursor>& cursors,
+                  std::string&& text,
+                  BufOpType ot);
   std::vector<BufferCursor> iCursors{};
   std::string insertText{""};
   BufOpType opType;

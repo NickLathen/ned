@@ -9,40 +9,32 @@ EditBuffer::EditBuffer(std::vector<std::string>&& l) : lines{l} {
     lines.push_back("");
   }
 }
-void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
+void EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
+                                 int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  BufferOperation bo{cursor, "", BO_INSERT};
+  BufferOperation bo{cursors, "", BO_INSERT};
   switch (keycode) {
     case BACKSPACE:
       bo.opType = BO_BACKSPACE;
-      doBufferOperation(bo);
-      cursor = bo.targetCursor;
       break;
     case DELETE:
       bo.opType = BO_DELETE;
-      doBufferOperation(bo);
-      cursor = bo.targetCursor;
       break;
     case CARRIAGE_RETURN:
       bo.insertText.append(1, '\n');
-      doBufferOperation(bo);
-      cursor = bo.targetCursor;
       break;
     case TAB:
       bo.insertText.append(1, '\t');
-      doBufferOperation(bo);
-      cursor = bo.targetCursor;
       break;
     default:
       bo.insertText.append(1, keycode);
-      doBufferOperation(bo);
-      cursor = bo.targetCursor;
       break;
   }
+  doBufferOperation(bo);
+  cursors = bo.oCursors;
 }
-
 void EditBuffer::loadFromFile(const std::string& filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {
@@ -58,23 +50,28 @@ void EditBuffer::loadFromFile(const std::string& filename) {
   ifile.close();
 }
 void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
-  bool isSelection =
-      bufOp.targetCursor.getPosition() != bufOp.targetCursor.getTailPosition();
-  clearSelection(bufOp.targetCursor);
-  switch (bufOp.opType) {
-    case BO_INSERT:
-      insertTextAtCursor(bufOp.targetCursor, bufOp.insertText);
-      break;
-    case BO_BACKSPACE:
-      if (!isSelection)
-        backspaceAtCursor(bufOp.targetCursor);
-      break;
-    case BO_DELETE:
-      if (!isSelection)
-        deleteAtCursor(bufOp.targetCursor);
-      break;
+  for (auto targetCursor : bufOp.iCursors) {
+    bool isSelection =
+        targetCursor.getPosition() != targetCursor.getTailPosition();
+    if (isSelection)
+      clearSelection(targetCursor);
+    switch (bufOp.opType) {
+      case BO_INSERT:
+        insertTextAtCursor(targetCursor, bufOp.insertText);
+        break;
+      case BO_BACKSPACE:
+        if (!isSelection)
+          backspaceAtCursor(targetCursor);
+        break;
+      case BO_DELETE:
+        if (!isSelection)
+          deleteAtCursor(targetCursor);
+        break;
+    }
+    bufOp.oCursors.push_back(targetCursor);
   }
 }
+
 void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   std::vector<std::string> insertLines{};
   std::string insertLine{""};
@@ -105,7 +102,6 @@ void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   }
   cursor.moveSet(cCol, cRow);
 }
-
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
