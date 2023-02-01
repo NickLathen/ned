@@ -6,6 +6,7 @@
 enum PALETTES { N_TEXT = 1, N_GUTTER, N_INFO, N_COMMAND, N_HIGHLIGHT };
 
 class BufferCursor;
+class BufferOperation;
 
 // points to a specific character in a buffer
 struct BufferPosition {
@@ -26,12 +27,14 @@ class EditBuffer {
   std::vector<std::string> lines{""};
   void insertAtCursor(BufferCursor& cursor, int keycode);
   void loadFromFile(const std::string& filename);
+  void doBufferOperation(BufferOperation& bufOp);
 
  private:
+  void insertTextAtCursor(BufferCursor& cursor, std::string& text);
   void insertCharAtCursor(BufferCursor& cursor, int keycode);
   void carriageReturnAtCursor(BufferCursor& cursor);
   void backspaceAtCursor(BufferCursor& cursor);
-  void deleteAtCursor(const BufferCursor& cursor);
+  void deleteAtCursor(BufferCursor& cursor);
   void tabAtCursor(BufferCursor& cursor);
   void clearSelection(BufferCursor& cursor);
 };
@@ -39,7 +42,7 @@ class EditBuffer {
 class BufferCursor {
  public:
   BufferCursor();
-  BufferCursor(BufferPosition pos);
+  BufferCursor(BufferPosition& pos);
   void moveSet(int col, int row);
   void selectSet(int col, int row);
   void selectUp(const EditBuffer& buf);
@@ -60,6 +63,18 @@ class BufferCursor {
  private:
   BufferPosition position{};
   BufferPosition tailPosition{};
+};
+
+class BufferOperation {
+ public:
+  BufferOperation(BufferCursor& cursor,
+                  std::vector<BufferCursor>& cursors,
+                  std::string& text);
+  std::vector<BufferCursor> oCursors{};
+  std::string removedText{""};
+  std::vector<BufferCursor> iCursors{};
+  BufferCursor targetCursor{};
+  std::string insertText{""};
 };
 
 class Pane {

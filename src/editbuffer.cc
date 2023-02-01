@@ -52,87 +52,97 @@ void EditBuffer::loadFromFile(const std::string& filename) {
   ifile.close();
 }
 void EditBuffer::insertCharAtCursor(BufferCursor& cursor, int keycode) {
+  std::vector<BufferCursor> dummycursors{};
+  std::string c{(char)keycode};
+  BufferOperation bufOp(cursor, dummycursors, c);
+  doBufferOperation(bufOp);
+  cursor = bufOp.targetCursor;
+}
+void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
+  clearSelection(bufOp.targetCursor);
+  insertTextAtCursor(bufOp.targetCursor, bufOp.insertText);
+}
+void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
+  std::vector<std::string> insertLines{};
+  std::string insertLine{""};
+  for (int i = 0; i <= (int)text.size(); i++) {
+    if (i == (int)text.size() || text[i] == '\n') {
+      insertLines.push_back(insertLine);
+      insertLine = "";
+      continue;
+    }
+    insertLine.append(1, text.at(i));
+  }
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
-  if (cCol >= (int)lines[cRow].size()) {
-    lines[cRow].push_back((char)keycode);
-  } else {
-    lines[cRow].insert(lines[cRow].begin() + cCol, (char)keycode);
+  if (cCol > (int)lines[cRow].size())
+    cCol = lines[cRow].size();
+  std::string preString = lines[cRow].substr(0, cCol);
+  std::string postString = lines[cRow].substr(cCol);
+  int lastLineLength = insertLines[insertLines.size() - 1].size();
+  insertLines[0] = preString + insertLines[0];
+  insertLines[insertLines.size() - 1] =
+      insertLines[insertLines.size() - 1] + postString;
+  lines.erase(lines.begin() + cRow);
+  lines.insert(lines.begin() + cRow, insertLines.begin(), insertLines.end());
+  cRow += insertLines.size() - 1;
+  cCol = lastLineLength;
+  if (insertLines.size() == 1) {
+    cCol += preString.size();
   }
-  cursor.moveSet(cCol + 1, cRow);
+  cursor.moveSet(cCol, cRow);
 }
 
 void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
-  int cRow = cursor.getRow();
-  int cCol = cursor.getCol();
-  std::string newLineText = "";
-  if (cCol < (int)lines[cRow].size()) {
-    // transfer the text after cursor on current line to new line
-    newLineText = lines[cRow].substr(cCol);
-    lines[cRow].erase(lines[cRow].begin() + cCol, lines[cRow].end());
-  }
-  if (cRow >= (int)lines.size() - 1) {
-    // we are on the last row so we add a new line to the back
-    lines.push_back(newLineText);
-  } else {
-    lines.insert(lines.begin() + cRow + 1, newLineText);
-  }
-  cursor.moveSet(0, cRow + 1);
+  std::vector<BufferCursor> dummycursors{};
+  std::string c{'\n'};
+  BufferOperation bufOp(cursor, dummycursors, c);
+  doBufferOperation(bufOp);
+  cursor = bufOp.targetCursor;
 }
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
-  // ignore selections for now;
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
-  if (cCol == 0) {
-    if (cRow == 0)
-      return;
-    // Cursor is at beginning of row, rows must be merged
-    size_t preRowLength = lines[cRow - 1].size();
-    // append line to previous line
-    lines[cRow - 1].append(lines[cRow]);
-    // remove line
-    lines.erase(lines.begin() + cRow);
-    cursor.moveSet(preRowLength, cRow - 1);
-  } else {
-    // Cursor is somewhere within row, just remove the previous character
-    if (cCol > (int)lines[cRow].size()) {
-      // if cursor is past end of line, go back to end of line
-      cCol = lines[cRow].size();
-    }
-    // remove the character
-    lines[cRow].erase(lines[cRow].begin() + cCol - 1);
-    // move cursor back
-    cursor.moveSet(cCol - 1, cRow);
-  }
-}
-void EditBuffer::deleteAtCursor(const BufferCursor& cursor) {
-  int cRow = cursor.getRow();
-  int cCol = cursor.getCol();
-  if (cRow == (int)lines.size() - 1 && cCol >= (int)lines[cRow].size()) {
+  if (cCol >= (int)lines[cRow].size())
+    cCol = lines[cRow].size();
+  if (cRow == 0 && cCol == 0)
     return;
-  }
-  if (cCol >= (int)lines[cRow].size()) {
-    // Cursor is at end of row, rows must be merged
-    lines[cRow].append(lines[cRow + 1]);
-    lines.erase(lines.begin() + cRow + 1);
+  if (cCol == 0) {
+    cursor.selectSet(lines[cRow - 1].size(), cRow - 1);
   } else {
-    // Cursor is somewhere within row, just remove the character
-    lines[cRow].erase(lines[cRow].begin() + cCol);
+    cursor.selectSet(cCol - 1, cRow);
   }
+  std::vector<BufferCursor> dummycursors{};
+  std::string c{""};
+  BufferOperation bufOp(cursor, dummycursors, c);
+  doBufferOperation(bufOp);
+  cursor = bufOp.targetCursor;
+}
+void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
+  int cRow = cursor.getRow();
+  int cCol = cursor.getCol();
+  if (cCol >= (int)lines[cRow].size())
+    cCol = lines[cRow].size();
+  if (cRow > (int)lines.size() - 1 ||
+      (cRow == (int)lines.size() - 1 && cCol > (int)lines[cRow].size() - 1))
+    return;
+  if (cCol > (int)lines[cRow].size() - 1) {
+    cursor.selectSet(0, cRow + 1);
+  } else {
+    cursor.selectSet(cCol + 1, cRow);
+  }
+  std::vector<BufferCursor> dummycursors{};
+  std::string c{""};
+  BufferOperation bufOp(cursor, dummycursors, c);
+  doBufferOperation(bufOp);
+  cursor = bufOp.targetCursor;
 }
 void EditBuffer::tabAtCursor(BufferCursor& cursor) {
-  int cRow = cursor.getRow();
-  int cCol = cursor.getCol();
-  const static std::string tab = "\t";
-  if (cCol >= (int)lines[cRow].size()) {
-    lines[cRow].append(tab);
-  } else {
-    std::string end = lines[cRow].substr(cCol, (int)lines[cRow].size() - cCol);
-    lines[cRow].resize(lines[cRow].size() + tab.size());
-    lines[cRow].replace(cCol, tab.size(), tab);
-    lines[cRow].replace(cCol + tab.size(), end.size(), end);
-  }
-  cursor.moveSet(cCol + tab.size(), cRow);
+  std::vector<BufferCursor> dummycursors{};
+  std::string c{'\t'};
+  BufferOperation bufOp(cursor, dummycursors, c);
+  doBufferOperation(bufOp);
+  cursor = bufOp.targetCursor;
 }
 
 void EditBuffer::clearSelection(BufferCursor& cursor) {

@@ -2,7 +2,7 @@
 #include "pane.hh"
 
 BufferCursor::BufferCursor() {}
-BufferCursor::BufferCursor(BufferPosition pos) : position{pos} {}
+BufferCursor::BufferCursor(BufferPosition& pos) : position{pos} {}
 void BufferCursor::moveSet(int x, int y) {
   std::cout << "moveset: " << x << ", " << y << std::endl;
   position.row = y;
