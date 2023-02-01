@@ -208,7 +208,6 @@ void Pane::handleTextKeypress(int keycode) {
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||
           keycode == BACKSPACE || keycode == DELETE || keycode == TAB) {
         isHandledPress = true;
-        // the keycode is printable or a carriage return
         for (BufferCursor& c : cursors) {
           buf.insertAtCursor(c, keycode);
         }

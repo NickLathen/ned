@@ -27,15 +27,12 @@ class EditBuffer {
   std::vector<std::string> lines{""};
   void insertAtCursor(BufferCursor& cursor, int keycode);
   void loadFromFile(const std::string& filename);
-  void doBufferOperation(BufferOperation& bufOp);
 
  private:
+  void doBufferOperation(BufferOperation& bufOp);
   void insertTextAtCursor(BufferCursor& cursor, std::string& text);
-  void insertCharAtCursor(BufferCursor& cursor, int keycode);
-  void carriageReturnAtCursor(BufferCursor& cursor);
   void backspaceAtCursor(BufferCursor& cursor);
   void deleteAtCursor(BufferCursor& cursor);
-  void tabAtCursor(BufferCursor& cursor);
   void clearSelection(BufferCursor& cursor);
 };
 
@@ -65,16 +62,18 @@ class BufferCursor {
   BufferPosition tailPosition{};
 };
 
+enum BufOpType { BO_INSERT, BO_BACKSPACE, BO_DELETE };
+
 class BufferOperation {
  public:
-  BufferOperation(BufferCursor& cursor,
-                  std::vector<BufferCursor>& cursors,
-                  std::string& text);
+  BufferOperation(BufferCursor& cursor, std::string& text, BufOpType ot);
+  BufferOperation(BufferCursor& cursor, std::string&& text, BufOpType ot);
+  BufferCursor targetCursor{};
+  std::vector<BufferCursor> iCursors{};
+  std::string insertText{""};
+  BufOpType opType;
   std::vector<BufferCursor> oCursors{};
   std::string removedText{""};
-  std::vector<BufferCursor> iCursors{};
-  BufferCursor targetCursor{};
-  std::string insertText{""};
 };
 
 class Pane {

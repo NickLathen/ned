@@ -13,26 +13,32 @@ void EditBuffer::insertAtCursor(BufferCursor& cursor, int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  bool isSelection = cursor.getPosition() != cursor.getTailPosition();
-  if (isSelection)
-    clearSelection(cursor);
+  BufferOperation bo{cursor, "", BO_INSERT};
   switch (keycode) {
-    case CARRIAGE_RETURN:
-      carriageReturnAtCursor(cursor);
-      break;
     case BACKSPACE:
-      if (!isSelection)
-        backspaceAtCursor(cursor);
+      bo.opType = BO_BACKSPACE;
+      doBufferOperation(bo);
+      cursor = bo.targetCursor;
       break;
     case DELETE:
-      if (!isSelection)
-        deleteAtCursor(cursor);
+      bo.opType = BO_DELETE;
+      doBufferOperation(bo);
+      cursor = bo.targetCursor;
+      break;
+    case CARRIAGE_RETURN:
+      bo.insertText.append(1, '\n');
+      doBufferOperation(bo);
+      cursor = bo.targetCursor;
       break;
     case TAB:
-      tabAtCursor(cursor);
+      bo.insertText.append(1, '\t');
+      doBufferOperation(bo);
+      cursor = bo.targetCursor;
       break;
     default:
-      insertCharAtCursor(cursor, keycode);
+      bo.insertText.append(1, keycode);
+      doBufferOperation(bo);
+      cursor = bo.targetCursor;
       break;
   }
 }
@@ -51,16 +57,23 @@ void EditBuffer::loadFromFile(const std::string& filename) {
   }
   ifile.close();
 }
-void EditBuffer::insertCharAtCursor(BufferCursor& cursor, int keycode) {
-  std::vector<BufferCursor> dummycursors{};
-  std::string c{(char)keycode};
-  BufferOperation bufOp(cursor, dummycursors, c);
-  doBufferOperation(bufOp);
-  cursor = bufOp.targetCursor;
-}
 void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
+  bool isSelection =
+      bufOp.targetCursor.getPosition() != bufOp.targetCursor.getTailPosition();
   clearSelection(bufOp.targetCursor);
-  insertTextAtCursor(bufOp.targetCursor, bufOp.insertText);
+  switch (bufOp.opType) {
+    case BO_INSERT:
+      insertTextAtCursor(bufOp.targetCursor, bufOp.insertText);
+      break;
+    case BO_BACKSPACE:
+      if (!isSelection)
+        backspaceAtCursor(bufOp.targetCursor);
+      break;
+    case BO_DELETE:
+      if (!isSelection)
+        deleteAtCursor(bufOp.targetCursor);
+      break;
+  }
 }
 void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   std::vector<std::string> insertLines{};
@@ -93,9 +106,6 @@ void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   cursor.moveSet(cCol, cRow);
 }
 
-void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
-  insertCharAtCursor(cursor, '\n');
-}
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
@@ -108,11 +118,7 @@ void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   } else {
     cursor.selectSet(cCol - 1, cRow);
   }
-  std::vector<BufferCursor> dummycursors{};
-  std::string c{""};
-  BufferOperation bufOp(cursor, dummycursors, c);
-  doBufferOperation(bufOp);
-  cursor = bufOp.targetCursor;
+  clearSelection(cursor);
 }
 void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
@@ -127,22 +133,16 @@ void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
   } else {
     cursor.selectSet(cCol + 1, cRow);
   }
-  std::vector<BufferCursor> dummycursors{};
-  std::string c{""};
-  BufferOperation bufOp(cursor, dummycursors, c);
-  doBufferOperation(bufOp);
-  cursor = bufOp.targetCursor;
-}
-void EditBuffer::tabAtCursor(BufferCursor& cursor) {
-  insertCharAtCursor(cursor, '\t');
+  clearSelection(cursor);
 }
 
 void EditBuffer::clearSelection(BufferCursor& cursor) {
-  BufferPosition start =
-      std::min(cursor.getPosition(), cursor.getTailPosition());
-  BufferPosition end = std::max(cursor.getPosition(), cursor.getTailPosition());
-  if (start == end)
+  BufferPosition a = cursor.getPosition();
+  BufferPosition b = cursor.getTailPosition();
+  if (a == b)
     return;
+  BufferPosition start = std::min(a, b);
+  BufferPosition end = std::max(a, b);
   if (start.col > lines[start.row].size()) {
     start.col = lines[start.row].size();
   }
