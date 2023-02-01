@@ -94,11 +94,7 @@ void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
 }
 
 void EditBuffer::carriageReturnAtCursor(BufferCursor& cursor) {
-  std::vector<BufferCursor> dummycursors{};
-  std::string c{'\n'};
-  BufferOperation bufOp(cursor, dummycursors, c);
-  doBufferOperation(bufOp);
-  cursor = bufOp.targetCursor;
+  insertCharAtCursor(cursor, '\n');
 }
 void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   int cRow = cursor.getRow();
@@ -138,11 +134,7 @@ void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
   cursor = bufOp.targetCursor;
 }
 void EditBuffer::tabAtCursor(BufferCursor& cursor) {
-  std::vector<BufferCursor> dummycursors{};
-  std::string c{'\t'};
-  BufferOperation bufOp(cursor, dummycursors, c);
-  doBufferOperation(bufOp);
-  cursor = bufOp.targetCursor;
+  insertCharAtCursor(cursor, '\t');
 }
 
 void EditBuffer::clearSelection(BufferCursor& cursor) {

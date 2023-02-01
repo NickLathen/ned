@@ -378,6 +378,7 @@ void Pane::drawBuffer() const {
 void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
+  bool isSelection = cursor.getPosition() != cursor.getTailPosition();
   int bufX = cursor.getCol();
   int bufY = cursor.getRow();
   if (bufX > (int)buf.lines[bufY].size()) {
@@ -406,8 +407,15 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
       screenY >= maxY - 2)
     return;
-
-  mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_TEXT, nullptr);
+  if (isSelection) {
+    if (cursor.getPosition() < cursor.getTailPosition()) {
+      mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_HIGHLIGHT, nullptr);
+    } else {
+      mvwchgat(window, screenY, screenX, 1, A_UNDERLINE, N_TEXT, nullptr);
+    }
+  } else {
+    mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_TEXT, nullptr);
+  }
 }
 void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
   wattron(window, COLOR_PAIR(N_HIGHLIGHT));
@@ -482,9 +490,8 @@ void Pane::drawCursors() const {
     int gutterWidth = getGutterWidth();
     if (cursor.getPosition() != cursor.getTailPosition()) {
       drawSelectionCursor(cursor);
-    } else {
-      drawSingleCursor(cursor, gutterWidth);
     }
+    drawSingleCursor(cursor, gutterWidth);
   }
 }
 
