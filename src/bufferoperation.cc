@@ -1,6 +1,6 @@
 #include "pane.hh"
 
-BufferOperation::BufferOperation(std::vector<BufferCursor>& cursors,
-                                 std::string&& text,
+BufferOperation::BufferOperation(const std::vector<BufferCursor>& cursors,
+                                 const std::string&& text,
                                  BufOpType ot)
     : iCursors{cursors}, insertText{text}, opType{ot} {}

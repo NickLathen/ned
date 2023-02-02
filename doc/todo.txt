@@ -14,6 +14,9 @@ IN PROGRESS
   undo/redo
 
 TODO
+  mouse scroll
+  mouse click text
+  mouse double click text
   keybinds from file
   copy/paste
   error line
@@ -22,6 +25,3 @@ TODO
   syntax highlighting
   compiler errors
   word based autocomplete
-  mouse scroll
-  mouse click text
-  mouse double click text

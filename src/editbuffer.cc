@@ -42,6 +42,24 @@ BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
   cursors = bufOp.oCursors;
   return bufOp;
 }
+void EditBuffer::undoBufferOperation(const BufferOperation& bufOp) {
+  BufferOperation uBufOp{bufOp.oCursors, "", BO_INSERT};
+  switch (bufOp.opType) {
+    case BO_INSERT:
+      return;
+    case BO_BACKSPACE:
+      return;
+    case BO_DELETE:
+      return;
+    case BO_SLIDE_UP:
+      uBufOp.opType = BO_SLIDE_DOWN;
+      break;
+    case BO_SLIDE_DOWN:
+      uBufOp.opType = BO_SLIDE_UP;
+      break;
+  }
+  doBufferOperation(uBufOp);
+}
 void EditBuffer::loadFromFile(const std::string& filename) {
   std::ifstream ifile{filename.c_str()};
   if (!ifile.is_open()) {

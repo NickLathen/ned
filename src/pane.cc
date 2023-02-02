@@ -95,7 +95,12 @@ void Pane::saveBufOp(BufferOperation& bufOp) {
     opStack.erase(opStack.begin() + opStackPosition, opStack.end());
   }
   opStack.push_back(std::move(bufOp));
-  opStackPosition += 1;
+  opStackPosition++;
+}
+void Pane::undoLastBufOp() {
+  opStackPosition--;
+  cursors = opStack[opStackPosition].iCursors;
+  buf.undoBufferOperation(opStack[opStackPosition]);
 }
 void Pane::handleCommandKeypress(int keycode) {
   bool isHandledPress = false;
@@ -261,13 +266,17 @@ void Pane::handleTextKeypress(int keycode) {
         c.selectEnd(buf);
       }
       break;
+    case CTRL_Z:
+      isHandledPress = true;
+      undoLastBufOp();
+      break;
     default:
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||
           keycode == BACKSPACE || keycode == DELETE || keycode == TAB ||
           keycode == CTRL_UP || keycode == CTRL_DOWN) {
         isHandledPress = true;
-        BufferOperation bo = buf.insertAtCursors(cursors, keycode);
-        saveBufOp(bo);
+        BufferOperation bufOp = buf.insertAtCursors(cursors, keycode);
+        saveBufOp(bufOp);
       }
       break;
   }

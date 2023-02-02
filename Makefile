@@ -1,6 +1,3 @@
-CC=g++
-CPP=g++
-CXX=g++
 WARNALL=-Wall -Wextra -Wpedantic
 DEBUG=-g
 STD=--std=c++17

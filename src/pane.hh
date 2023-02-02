@@ -27,15 +27,19 @@ class EditBuffer {
   std::vector<std::string> lines{};
   BufferOperation insertAtCursors(std::vector<BufferCursor>& cursors,
                                   int keycode);
+  void undoBufferOperation(const BufferOperation& bufOp);
   void loadFromFile(const std::string& filename);
 
  private:
-  void slideUpAtCursor(BufferCursor& cursor);
-  void slideDownAtCursor(BufferCursor& cursor);
   void doBufferOperation(BufferOperation& bufOp);
   void insertTextAtCursor(BufferCursor& cursor, const std::string& text);
   void backspaceAtCursor(BufferCursor& cursor, std::string& removedText);
   void deleteAtCursor(BufferCursor& cursor, std::string& removedText);
+  void slideUpAtCursor(BufferCursor& cursor);
+  void slideDownAtCursor(BufferCursor& cursor);
+  void undoInsertTextAtCursor(BufferCursor& cursor, std::string& insertText);
+  void undoBackspaceAtCursor(BufferCursor& cursor, std::string& removedText);
+  void undoDeleteAtCursor(BufferCursor& cursor, std::string& removedText);
   std::string clearSelection(BufferCursor& cursor);
   std::string stringifySelection(BufferCursor& cursor);
 };
@@ -84,8 +88,8 @@ enum BufOpType {
 
 class BufferOperation {
  public:
-  BufferOperation(std::vector<BufferCursor>& cursors,
-                  std::string&& text,
+  BufferOperation(const std::vector<BufferCursor>& cursors,
+                  const std::string&& text,
                   BufOpType ot);
   std::vector<BufferCursor> iCursors{};
   std::string insertText{};
@@ -122,6 +126,7 @@ class Pane {
   void initiateOpenCommand();
   void saveBufferToFile(const std::string& saveTarget) const;
   void saveBufOp(BufferOperation& bufOp);
+  void undoLastBufOp();
   void handleCommandKeypress(int keycode);
   void handleTextKeypress(int keycode);
 

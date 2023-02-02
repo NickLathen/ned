@@ -3,6 +3,8 @@
 #define CTRL_O 15
 #define CTRL_Q 17
 #define CTRL_S 19
+#define CTRL_Z 26
+#define CTRL_Y 25
 
 #define ARROW_UP 259
 #define ARROW_DOWN 258
