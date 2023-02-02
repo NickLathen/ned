@@ -24,7 +24,7 @@ class EditBuffer {
  public:
   EditBuffer();
   EditBuffer(std::vector<std::string>&& lines);
-  std::vector<std::string> lines{""};
+  std::vector<std::string> lines{};
   void insertAtCursors(std::vector<BufferCursor>& cursors, int keycode);
   void loadFromFile(const std::string& filename);
 
@@ -70,10 +70,10 @@ class BufferOperation {
                   std::string&& text,
                   BufOpType ot);
   std::vector<BufferCursor> iCursors{};
-  std::string insertText{""};
-  BufOpType opType;
+  std::string insertText{};
+  BufOpType opType{};
   std::vector<BufferCursor> oCursors{};
-  std::string removedText{""};
+  std::vector<std::string> removedText{};
 };
 
 class Pane {
@@ -92,9 +92,9 @@ class Pane {
   int command{};
   int commandCursorPosition{};
   WINDOW* window{};
-  std::string filename{""};
-  std::string commandPrompt{""};
-  std::string userCommandArgs{""};
+  std::string filename{};
+  std::string commandPrompt{};
+  std::string userCommandArgs{};
   EditBuffer buf{};
   BufferPosition bufOffset{};
   std::vector<BufferCursor> cursors{BufferCursor{}};

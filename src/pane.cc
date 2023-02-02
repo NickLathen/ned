@@ -375,9 +375,11 @@ void Pane::drawBuffer() const {
 void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
-  bool isSelection = cursor.getPosition() != cursor.getTailPosition();
   int bufX = cursor.getCol();
   int bufY = cursor.getRow();
+  int screenY = bufY - bufOffset.row;
+  if (screenY < 0 || screenY >= maxY - 2)
+    return;
   if (bufX > (int)buf.lines[bufY].size()) {
     bufX = buf.lines[bufY].size();
   }
@@ -397,18 +399,16 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   }
   if (cursorDistance < 0)
     cursorDistance = distance;
-
   int screenX = gutterWidth + cursorDistance;
-  int screenY = bufY - bufOffset.row;
-  // ignore offscreen
-  if (screenX < gutterWidth || screenX >= maxX || screenY < 0 ||
-      screenY >= maxY - 2)
+  if (screenX < gutterWidth || screenX >= maxX)
     return;
+  bool isSelection = cursor.getPosition() != cursor.getTailPosition();
   if (isSelection) {
-    if (cursor.getPosition() < cursor.getTailPosition()) {
-      mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_HIGHLIGHT, nullptr);
-    } else {
+    bool isSelectionTail = cursor.getPosition() > cursor.getTailPosition();
+    if (isSelectionTail) {
       mvwchgat(window, screenY, screenX, 1, A_UNDERLINE, N_TEXT, nullptr);
+    } else {
+      mvwchgat(window, screenY, screenX, 1, A_UNDERLINE, N_HIGHLIGHT, nullptr);
     }
   } else {
     mvwchgat(window, screenY, screenX, 1, A_STANDOUT, N_TEXT, nullptr);

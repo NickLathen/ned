@@ -42,7 +42,7 @@ void EditBuffer::loadFromFile(const std::string& filename) {
     exitNed(1);
   }
   lines.clear();
-  std::string line{""};
+  std::string line{};
   while (std::getline(ifile, line)) {
     lines.push_back(line);
     line = "";
@@ -74,7 +74,7 @@ void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
 
 void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   std::vector<std::string> insertLines{};
-  std::string insertLine{""};
+  std::string insertLine{};
   for (int i = 0; i <= (int)text.size(); i++) {
     if (i == (int)text.size() || text[i] == '\n') {
       insertLines.push_back(insertLine);
