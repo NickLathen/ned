@@ -48,10 +48,18 @@ class BufferCursor {
   void selectDown(const EditBuffer& buf);
   void selectLeft(const EditBuffer& buf);
   void selectRight(const EditBuffer& buf);
+  void selectPageUp(int termHeight);
+  void selectPageDown(const EditBuffer& buf, int termHeight);
+  void selectHome();
+  void selectEnd(const EditBuffer& buf);
   void moveUp(const EditBuffer& buf);
   void moveDown(const EditBuffer& buf);
   void moveLeft(const EditBuffer& buf);
   void moveRight(const EditBuffer& buf);
+  void movePageUp(int termHeight);
+  void movePageDown(const EditBuffer& buf, int termHeight);
+  void moveHome();
+  void moveEnd(const EditBuffer& buf);
   BufferPosition getPosition() const;
   BufferPosition getTailPosition() const;
   size_t getRow() const;

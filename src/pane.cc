@@ -148,6 +148,8 @@ void Pane::handleCommandKeypress(int keycode) {
   }
 }
 void Pane::handleTextKeypress(int keycode) {
+  int maxX, maxY;
+  getmaxyx(window, maxY, maxX);
   bool isHandledPress = false;
   switch (keycode) {
     case CTRL_S:
@@ -156,25 +158,25 @@ void Pane::handleTextKeypress(int keycode) {
     case CTRL_O:
       initiateOpenCommand();
       return;
-    case KEY_UP:
+    case ARROW_UP:
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
         c.moveUp(buf);
       }
       break;
-    case KEY_DOWN:
+    case ARROW_DOWN:
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
         c.moveDown(buf);
       }
       break;
-    case KEY_LEFT:
+    case ARROW_LEFT:
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
         c.moveLeft(buf);
       }
       break;
-    case KEY_RIGHT:
+    case ARROW_RIGHT:
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
         c.moveRight(buf);
@@ -202,6 +204,54 @@ void Pane::handleTextKeypress(int keycode) {
       isHandledPress = true;
       for (BufferCursor& c : cursors) {
         c.selectRight(buf);
+      }
+      break;
+    case PAGE_UP:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.movePageUp(maxY);
+      }
+      break;
+    case PAGE_DOWN:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.movePageDown(buf, maxY);
+      }
+      break;
+    case HOME:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.moveHome();
+      }
+      break;
+    case END:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.moveEnd(buf);
+      }
+      break;
+    case SHIFT_PAGE_UP:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectPageUp(maxY);
+      }
+      break;
+    case SHIFT_PAGE_DOWN:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectPageDown(buf, maxY);
+      }
+      break;
+    case SHIFT_HOME:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectHome();
+      }
+      break;
+    case SHIFT_END:
+      isHandledPress = true;
+      for (BufferCursor& c : cursors) {
+        c.selectEnd(buf);
       }
       break;
     default:

@@ -182,7 +182,6 @@ void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
   }
   clearSelection(cursor);
 }
-
 void EditBuffer::clearSelection(BufferCursor& cursor) {
   BufferPosition a = cursor.getPosition();
   BufferPosition b = cursor.getTailPosition();

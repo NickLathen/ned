@@ -7,12 +7,18 @@ DONE
   save to existing file
   selection (shift + arrow keys)
   line/selecting moving (ctrl + up/sown)
+  home/end
+  pgup/pgdwn
 
 IN PROGRESS
 
 TODO
+  keybinds from file
   copy/paste
   undo/redo
   error line
   multi caret editing (ctrl-d)
   multi file editing (tabs)
+  syntax highlighting
+  compiler errors
+  word based autocomplete

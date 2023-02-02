@@ -3,16 +3,16 @@
 
 BufferCursor::BufferCursor() {}
 BufferCursor::BufferCursor(BufferPosition& pos) : position{pos} {}
-void BufferCursor::moveSet(int x, int y) {
-  std::cout << "moveset: " << x << ", " << y << std::endl;
-  position.row = y;
-  position.col = x;
+void BufferCursor::moveSet(int col, int row) {
+  std::cout << "moveset: " << col << ", " << row << std::endl;
+  position.row = row;
+  position.col = col;
   tailPosition = position;
 }
-void BufferCursor::selectSet(int x, int y) {
-  std::cout << "selectSet: " << x << ", " << y << std::endl;
-  position.row = y;
-  position.col = x;
+void BufferCursor::selectSet(int col, int row) {
+  std::cout << "selectSet: " << col << ", " << row << std::endl;
+  position.row = row;
+  position.col = col;
 }
 void BufferCursor::selectUp(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
@@ -100,6 +100,31 @@ void BufferCursor::selectRight(const EditBuffer& buf) {
   newX = 0;
   selectSet(newX, newY);
 }
+void BufferCursor::selectPageUp(int termHeight) {
+  int nextRow = (int)position.row - termHeight / 2;
+  if (nextRow < 0) {
+    selectSet(0, 0);
+  } else {
+    selectSet(position.col, nextRow);
+  }
+}
+void BufferCursor::selectPageDown(const EditBuffer& buf, int termHeight) {
+  int bufSize = buf.lines.size();
+  if (bufSize == 0)
+    return;
+  int nextRow = position.row + termHeight / 2;
+  if (nextRow > bufSize - 1) {
+    selectSet(buf.lines[bufSize - 1].size(), bufSize - 1);
+  } else {
+    selectSet(position.col, nextRow);
+  }
+}
+void BufferCursor::selectHome() {
+  selectSet(0, position.row);
+}
+void BufferCursor::selectEnd(const EditBuffer& buf) {
+  selectSet(buf.lines[position.row].size(), position.row);
+}
 void BufferCursor::moveUp(const EditBuffer& buf) {
   selectUp(buf);
   tailPosition = position;
@@ -116,6 +141,23 @@ void BufferCursor::moveRight(const EditBuffer& buf) {
   selectRight(buf);
   tailPosition = position;
 }
+void BufferCursor::movePageUp(int termHeight) {
+  selectPageUp(termHeight);
+  tailPosition = position;
+}
+void BufferCursor::movePageDown(const EditBuffer& buf, int termHeight) {
+  selectPageDown(buf, termHeight);
+  tailPosition = position;
+}
+void BufferCursor::moveHome() {
+  selectHome();
+  tailPosition = position;
+}
+void BufferCursor::moveEnd(const EditBuffer& buf) {
+  selectEnd(buf);
+  tailPosition = position;
+}
+
 BufferPosition BufferCursor::getPosition() const {
   return position;
 }
