@@ -25,17 +25,19 @@ class EditBuffer {
   EditBuffer();
   EditBuffer(std::vector<std::string>&& lines);
   std::vector<std::string> lines{};
-  void insertAtCursors(std::vector<BufferCursor>& cursors, int keycode);
+  BufferOperation insertAtCursors(std::vector<BufferCursor>& cursors,
+                                  int keycode);
   void loadFromFile(const std::string& filename);
 
  private:
   void slideUpAtCursor(BufferCursor& cursor);
   void slideDownAtCursor(BufferCursor& cursor);
   void doBufferOperation(BufferOperation& bufOp);
-  void insertTextAtCursor(BufferCursor& cursor, std::string& text);
-  void backspaceAtCursor(BufferCursor& cursor);
-  void deleteAtCursor(BufferCursor& cursor);
-  void clearSelection(BufferCursor& cursor);
+  void insertTextAtCursor(BufferCursor& cursor, const std::string& text);
+  void backspaceAtCursor(BufferCursor& cursor, std::string& removedText);
+  void deleteAtCursor(BufferCursor& cursor, std::string& removedText);
+  std::string clearSelection(BufferCursor& cursor);
+  std::string stringifySelection(BufferCursor& cursor);
 };
 
 class BufferCursor {
@@ -89,7 +91,7 @@ class BufferOperation {
   std::string insertText{};
   BufOpType opType{};
   std::vector<BufferCursor> oCursors{};
-  std::vector<std::string> removedText{};
+  std::vector<std::string> removedTexts{};
 };
 
 class Pane {
@@ -107,6 +109,7 @@ class Pane {
   int paneFocus{};
   int command{};
   int commandCursorPosition{};
+  int opStackPosition{};
   WINDOW* window{};
   std::string filename{};
   std::string commandPrompt{};
@@ -114,9 +117,11 @@ class Pane {
   EditBuffer buf{};
   BufferPosition bufOffset{};
   std::vector<BufferCursor> cursors{BufferCursor{}};
+  std::vector<BufferOperation> opStack{};
   void initiateSaveCommand();
   void initiateOpenCommand();
   void saveBufferToFile(const std::string& saveTarget) const;
+  void saveBufOp(BufferOperation& bufOp);
   void handleCommandKeypress(int keycode);
   void handleTextKeypress(int keycode);
 

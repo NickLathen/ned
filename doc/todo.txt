@@ -11,14 +11,17 @@ DONE
   pgup/pgdwn
 
 IN PROGRESS
+  undo/redo
 
 TODO
   keybinds from file
   copy/paste
-  undo/redo
   error line
   multi caret editing (ctrl-d)
   multi file editing (tabs)
   syntax highlighting
   compiler errors
   word based autocomplete
+  mouse scroll
+  mouse click text
+  mouse double click text

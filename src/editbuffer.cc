@@ -9,37 +9,38 @@ EditBuffer::EditBuffer(std::vector<std::string>&& l) : lines{l} {
     lines.push_back("");
   }
 }
-void EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
-                                 int keycode) {
+BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
+                                            int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  BufferOperation bo{cursors, "", BO_INSERT};
+  BufferOperation bufOp{cursors, "", BO_INSERT};
   switch (keycode) {
     case BACKSPACE:
-      bo.opType = BO_BACKSPACE;
+      bufOp.opType = BO_BACKSPACE;
       break;
     case DELETE:
-      bo.opType = BO_DELETE;
+      bufOp.opType = BO_DELETE;
       break;
     case CARRIAGE_RETURN:
-      bo.insertText.append(1, '\n');
+      bufOp.insertText.append(1, '\n');
       break;
     case TAB:
-      bo.insertText.append(1, '\t');
+      bufOp.insertText.append(1, '\t');
       break;
     case CTRL_UP:
-      bo.opType = BO_SLIDE_UP;
+      bufOp.opType = BO_SLIDE_UP;
       break;
     case CTRL_DOWN:
-      bo.opType = BO_SLIDE_DOWN;
+      bufOp.opType = BO_SLIDE_DOWN;
       break;
     default:
-      bo.insertText.append(1, keycode);
+      bufOp.insertText.append(1, keycode);
       break;
   }
-  doBufferOperation(bo);
-  cursors = bo.oCursors;
+  doBufferOperation(bufOp);
+  cursors = bufOp.oCursors;
+  return bufOp;
 }
 void EditBuffer::loadFromFile(const std::string& filename) {
   std::ifstream ifile{filename.c_str()};
@@ -56,32 +57,33 @@ void EditBuffer::loadFromFile(const std::string& filename) {
   ifile.close();
 }
 void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
-  for (auto targetCursor : bufOp.iCursors) {
-    bool isSelection =
-        targetCursor.getPosition() != targetCursor.getTailPosition();
+  for (auto cursor : bufOp.iCursors) {
+    bool isSelection = cursor.getPosition() != cursor.getTailPosition();
+    std::string removedText{""};
     switch (bufOp.opType) {
       case BO_INSERT:
-        clearSelection(targetCursor);
-        insertTextAtCursor(targetCursor, bufOp.insertText);
+        removedText = clearSelection(cursor);
+        insertTextAtCursor(cursor, bufOp.insertText);
         break;
       case BO_BACKSPACE:
-        clearSelection(targetCursor);
+        removedText = clearSelection(cursor);
         if (!isSelection)
-          backspaceAtCursor(targetCursor);
+          backspaceAtCursor(cursor, removedText);
         break;
       case BO_DELETE:
-        clearSelection(targetCursor);
+        removedText = clearSelection(cursor);
         if (!isSelection)
-          deleteAtCursor(targetCursor);
+          deleteAtCursor(cursor, removedText);
         break;
       case BO_SLIDE_UP:
-        slideUpAtCursor(targetCursor);
+        slideUpAtCursor(cursor);
         break;
       case BO_SLIDE_DOWN:
-        slideDownAtCursor(targetCursor);
+        slideDownAtCursor(cursor);
         break;
     }
-    bufOp.oCursors.push_back(targetCursor);
+    bufOp.oCursors.push_back(cursor);
+    bufOp.removedTexts.push_back(removedText);
   }
 }
 
@@ -123,7 +125,8 @@ void EditBuffer::slideDownAtCursor(BufferCursor& cursor) {
   cursor.moveSet(b.col, b.row + 1);
   cursor.selectSet(a.col, a.row + 1);
 }
-void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
+void EditBuffer::insertTextAtCursor(BufferCursor& cursor,
+                                    const std::string& text) {
   std::vector<std::string> insertLines{};
   std::string insertLine{};
   for (int i = 0; i <= (int)text.size(); i++) {
@@ -153,7 +156,8 @@ void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   }
   cursor.moveSet(cCol, cRow);
 }
-void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
+void EditBuffer::backspaceAtCursor(BufferCursor& cursor,
+                                   std::string& removedText) {
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
   if (cCol >= (int)lines[cRow].size())
@@ -165,9 +169,10 @@ void EditBuffer::backspaceAtCursor(BufferCursor& cursor) {
   } else {
     cursor.selectSet(cCol - 1, cRow);
   }
-  clearSelection(cursor);
+  removedText = clearSelection(cursor);
 }
-void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
+void EditBuffer::deleteAtCursor(BufferCursor& cursor,
+                                std::string& removedText) {
   int cRow = cursor.getRow();
   int cCol = cursor.getCol();
   if (cCol >= (int)lines[cRow].size())
@@ -180,13 +185,14 @@ void EditBuffer::deleteAtCursor(BufferCursor& cursor) {
   } else {
     cursor.selectSet(cCol + 1, cRow);
   }
-  clearSelection(cursor);
+  removedText = clearSelection(cursor);
 }
-void EditBuffer::clearSelection(BufferCursor& cursor) {
+std::string EditBuffer::clearSelection(BufferCursor& cursor) {
   BufferPosition a = cursor.getPosition();
   BufferPosition b = cursor.getTailPosition();
   if (a == b)
-    return;
+    return "";
+  std::string removedText{stringifySelection(cursor)};
   BufferPosition start = std::min(a, b);
   BufferPosition end = std::max(a, b);
   if (start.col > lines[start.row].size()) {
@@ -207,4 +213,28 @@ void EditBuffer::clearSelection(BufferCursor& cursor) {
     lines.erase(lines.begin() + start.row + 1, lines.begin() + end.row + 1);
   }
   cursor.moveSet(start.col, start.row);
+  return removedText;
+}
+
+std::string EditBuffer::stringifySelection(BufferCursor& cursor) {
+  std::string result{""};
+  BufferPosition a = cursor.getPosition();
+  BufferPosition b = cursor.getTailPosition();
+  if (a == b)
+    return result;
+  BufferPosition start = std::min(a, b);
+  BufferPosition end = std::max(a, b);
+  for (int i = start.row; i <= (int)end.row; i++) {
+    int lineSize = lines[i].size();
+    int rowStart = i == (int)start.row ? start.col : 0;
+    if (rowStart > lineSize)
+      rowStart = lineSize;
+    int rowEnd = i == (int)end.row ? end.col : lineSize;
+    if (rowEnd > lineSize - 1)
+      rowEnd = lineSize;
+    result.append(lines[i].substr(rowStart, rowEnd - rowStart));
+    if (i < (int)end.row)
+      result.append("\n");
+  }
+  return result;
 }

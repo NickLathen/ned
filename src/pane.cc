@@ -90,6 +90,13 @@ void Pane::saveBufferToFile(const std::string& saveTarget) const {
   std::rename("ned.tmp", saveTarget.c_str());
   std::remove("ned.tmp.bak");
 }
+void Pane::saveBufOp(BufferOperation& bufOp) {
+  if (opStackPosition < (int)opStack.size()) {
+    opStack.erase(opStack.begin() + opStackPosition, opStack.end());
+  }
+  opStack.push_back(std::move(bufOp));
+  opStackPosition += 1;
+}
 void Pane::handleCommandKeypress(int keycode) {
   bool isHandledPress = false;
   switch (keycode) {
@@ -259,7 +266,8 @@ void Pane::handleTextKeypress(int keycode) {
           keycode == BACKSPACE || keycode == DELETE || keycode == TAB ||
           keycode == CTRL_UP || keycode == CTRL_DOWN) {
         isHandledPress = true;
-        buf.insertAtCursors(cursors, keycode);
+        BufferOperation bo = buf.insertAtCursors(cursors, keycode);
+        saveBufOp(bo);
       }
       break;
   }
