@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
   init_pair(N_GUTTER, 247, 236);
   init_pair(N_INFO, 0, 15);
   init_pair(N_COMMAND, 15, 234);
-  init_pair(N_HIGHLIGHT, 11, 21);
+  init_pair(N_HIGHLIGHT, 15, 39);
   WINDOW* textPane = newwin(0, 0, 0, 0);
   std::cout << "LINES=" << LINES << std::endl;
   std::cout << "COLS=" << COLS << std::endl;
@@ -65,7 +65,6 @@ int main(int argc, char** argv) {
   curs_set(0);
   raw();
 
-  // prepare pane
   Pane pane{textPane};
   if (argc == 2) {
     pane.loadFromFile(argv[1]);
@@ -77,6 +76,5 @@ int main(int argc, char** argv) {
     mainLoop(pane);
   }
 
-  // clean up
   exitNed(0);
 }

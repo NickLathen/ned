@@ -29,6 +29,8 @@ class EditBuffer {
   void loadFromFile(const std::string& filename);
 
  private:
+  void slideUpAtCursor(BufferCursor& cursor);
+  void slideDownAtCursor(BufferCursor& cursor);
   void doBufferOperation(BufferOperation& bufOp);
   void insertTextAtCursor(BufferCursor& cursor, std::string& text);
   void backspaceAtCursor(BufferCursor& cursor);
@@ -62,7 +64,13 @@ class BufferCursor {
   BufferPosition tailPosition{};
 };
 
-enum BufOpType { BO_INSERT, BO_BACKSPACE, BO_DELETE };
+enum BufOpType {
+  BO_INSERT,
+  BO_BACKSPACE,
+  BO_DELETE,
+  BO_SLIDE_UP,
+  BO_SLIDE_DOWN,
+};
 
 class BufferOperation {
  public:

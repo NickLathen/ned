@@ -1,46 +1,18 @@
-Changelog:
-  2023-01-23:
-    Develop Feature Plan:
-      MVP
-        arrow navigation
-        scrolling a buffer
-        character entry (typing)
-        character delete (delete / backspace)
-      V1.0
-        start from existing file
-        save to existing file
-      V1.5
-        undo/redo
-        error line
-        selection (shift + arrow keys)
-      V2
-        line/selecting moving (ctrl + up/sown)
-      V3
-        multi caret editing (ctrl-d)
-      V+
-        multi file editing (tabs)
-    Develop:
-      arrow navigation (buggy)
+DONE
+  arrow navigation
+  scrolling a buffer
+  character entry (typing)
+  character delete (delete / backspace)
+  start from existing file
+  save to existing file
+  selection (shift + arrow keys)
+  line/selecting moving (ctrl + up/sown)
 
-  2023-01-24
-    Plan:
-    Develop:
-      arrow navigation (use bounds of window)
-      virtual cursor (use bounds of buffer)
-      handle offset buffer
-  2023-01-25
-    Develop:
-      load from file
-      backspace
-  2023-01-26
-    Develop:
-      typing [X]
-      newline [X]
-      delete[X]
-  2021-01-30
-      open from file[x]
-      save to file[x]
-      tab handling[]
-        render text
-        render cursor
-        handle operations around tab characters?
+IN PROGRESS
+
+TODO
+  copy/paste
+  undo/redo
+  error line
+  multi caret editing (ctrl-d)
+  multi file editing (tabs)

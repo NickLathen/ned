@@ -9,6 +9,11 @@
 #define SHIFT_LEFT 393
 #define SHIFT_RIGHT 402
 
+#define CTRL_UP 566
+#define CTRL_DOWN 525
+#define CTRL_LEFT 545
+#define CTRL_RIGHT 560
+
 #define TAB 9
 #define CARRIAGE_RETURN 13
 #define ESCAPE 27

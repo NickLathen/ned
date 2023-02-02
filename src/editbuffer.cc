@@ -28,6 +28,12 @@ void EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
     case TAB:
       bo.insertText.append(1, '\t');
       break;
+    case CTRL_UP:
+      bo.opType = BO_SLIDE_UP;
+      break;
+    case CTRL_DOWN:
+      bo.opType = BO_SLIDE_DOWN;
+      break;
     default:
       bo.insertText.append(1, keycode);
       break;
@@ -53,25 +59,70 @@ void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
   for (auto targetCursor : bufOp.iCursors) {
     bool isSelection =
         targetCursor.getPosition() != targetCursor.getTailPosition();
-    if (isSelection)
-      clearSelection(targetCursor);
     switch (bufOp.opType) {
       case BO_INSERT:
+        clearSelection(targetCursor);
         insertTextAtCursor(targetCursor, bufOp.insertText);
         break;
       case BO_BACKSPACE:
+        clearSelection(targetCursor);
         if (!isSelection)
           backspaceAtCursor(targetCursor);
         break;
       case BO_DELETE:
+        clearSelection(targetCursor);
         if (!isSelection)
           deleteAtCursor(targetCursor);
+        break;
+      case BO_SLIDE_UP:
+        slideUpAtCursor(targetCursor);
+        break;
+      case BO_SLIDE_DOWN:
+        slideDownAtCursor(targetCursor);
         break;
     }
     bufOp.oCursors.push_back(targetCursor);
   }
 }
 
+void EditBuffer::slideUpAtCursor(BufferCursor& cursor) {
+  BufferPosition a = cursor.getPosition();
+  BufferPosition b = cursor.getTailPosition();
+  BufferPosition start = std::min(a, b);
+  BufferPosition end = std::max(a, b);
+  if (start.row <= 0)
+    return;
+  // copy the line above
+  std::string preLine = "\n" + lines[start.row - 1];
+  // delete the line above
+  lines.erase(lines.begin() + start.row - 1);
+  // insert the copy at the end of the last line of the selection
+  BufferPosition insertPos{end.row - 1, lines[end.row - 1].size()};
+  BufferCursor insertCursor{insertPos};
+  insertTextAtCursor(insertCursor, preLine);
+  // move cursor up a row
+  cursor.moveSet(b.col, b.row - 1);
+  cursor.selectSet(a.col, a.row - 1);
+}
+void EditBuffer::slideDownAtCursor(BufferCursor& cursor) {
+  BufferPosition a = cursor.getPosition();
+  BufferPosition b = cursor.getTailPosition();
+  BufferPosition start = std::min(a, b);
+  BufferPosition end = std::max(a, b);
+  if (end.row >= lines.size() - 1)
+    return;
+  // copy the line below
+  std::string postLine = lines[end.row + 1] + "\n";
+  // delete the line below
+  lines.erase(lines.begin() + end.row + 1);
+  // insert copy at beginning of line of first line of selection
+  BufferPosition insertPos{start.row, 0};
+  BufferCursor insertCursor{insertPos};
+  insertTextAtCursor(insertCursor, postLine);
+  // move cursor down
+  cursor.moveSet(b.col, b.row + 1);
+  cursor.selectSet(a.col, a.row + 1);
+}
 void EditBuffer::insertTextAtCursor(BufferCursor& cursor, std::string& text) {
   std::vector<std::string> insertLines{};
   std::string insertLine{};

@@ -206,7 +206,8 @@ void Pane::handleTextKeypress(int keycode) {
       break;
     default:
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||
-          keycode == BACKSPACE || keycode == DELETE || keycode == TAB) {
+          keycode == BACKSPACE || keycode == DELETE || keycode == TAB ||
+          keycode == CTRL_UP || keycode == CTRL_DOWN) {
         isHandledPress = true;
         buf.insertAtCursors(cursors, keycode);
       }
