@@ -23,10 +23,7 @@ int getNumDigits(int num) {
 enum PaneFocus { PF_TEXT, PF_COMMAND };
 enum Command { OPEN, SAVE };
 
-Pane::Pane() : paneFocus{PF_TEXT} {}
 Pane::Pane(WINDOW* window) : paneFocus{PF_TEXT}, window{window} {}
-Pane::Pane(WINDOW* window, EditBuffer&& eb)
-    : paneFocus{PF_TEXT}, window{window}, buf{eb} {}
 
 void Pane::addCursor() {
   cursors.push_back(BufferCursor{});
@@ -106,8 +103,12 @@ void Pane::undoLastBufOp() {
 }
 void Pane::redoNextBufOp() {
   if (opStackPosition < (int)opStack.size()) {
-    buf.doBufferOperation(opStack[opStackPosition]);
     cursors = opStack[opStackPosition].oCursors;
+    BufferOperation bufCopy = opStack[opStackPosition];
+    bufCopy.oCursors.clear();
+    bufCopy.removedTexts.clear();
+    buf.doBufferOperation(
+        bufCopy);  // use a copy so we ignore changes to ocursors/removedTexts
     opStackPosition++;
   }
 }
@@ -352,7 +353,7 @@ void Pane::drawGutter(int row, int lineNumber, int gutterWidth) const {
 }
 void Pane::drawLine(int lineNumber, int startCol, int sz) const {
   wattron(window, COLOR_PAIR(N_TEXT));
-  std::string line = buf.lines[lineNumber];
+  const std::string& line = buf.lines[lineNumber];
   int lIndex = 0;
   int screenX = 0;
   // find the first character lIndex in line that is after startCol, accounting

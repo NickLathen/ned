@@ -22,8 +22,6 @@ bool operator>=(const BufferPosition&, const BufferPosition&);
 // data from file
 class EditBuffer {
  public:
-  EditBuffer();
-  EditBuffer(std::vector<std::string>&& lines);
   std::vector<std::string> lines{};
   BufferOperation insertAtCursors(std::vector<BufferCursor>& cursors,
                                   int keycode);
@@ -37,6 +35,8 @@ class EditBuffer {
   void deleteAtCursor(BufferCursor& cursor, std::string& removedText);
   void slideUpAtCursor(BufferCursor& cursor);
   void slideDownAtCursor(BufferCursor& cursor);
+  BufferCursor selectPrecedingText(const std::string& insertText,
+                                   BufferCursor insertCursor);
   void undoInsertText(const BufferOperation& bufOp);
   void undoClearSelection(const BufferOperation& bufOp);
   void undoSlideUp(const BufferOperation& bufOp);
@@ -89,21 +89,19 @@ enum BufOpType {
 
 class BufferOperation {
  public:
-  BufferOperation(const std::vector<BufferCursor>& cursors,
-                  const std::vector<std::string>& texts,
-                  BufOpType ot);
-  BufOpType opType{};
-  std::vector<BufferCursor> iCursors{};
-  std::vector<std::string> insertTexts{};
+  BufferOperation(BufOpType ot,
+                  const std::vector<BufferCursor>& cursors,
+                  const std::vector<std::string>& texts);
+  BufOpType opType;
+  std::vector<BufferCursor> iCursors;
+  std::vector<std::string> insertTexts;
   std::vector<BufferCursor> oCursors{};
   std::vector<std::string> removedTexts{};
 };
 
 class Pane {
  public:
-  Pane();
   Pane(WINDOW* window);
-  Pane(WINDOW* window, EditBuffer&& eb);
   void addCursor();
   int getKeypress() const;
   void handleKeypress(int keycode);

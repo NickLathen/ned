@@ -3,42 +3,39 @@
 #include "const.hh"
 #include "pane.hh"
 
-EditBuffer::EditBuffer() {}
-EditBuffer::EditBuffer(std::vector<std::string>&& l) : lines{l} {
-  if (lines.size() == 0) {
-    lines.push_back("");
-  }
-}
 BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
                                             int keycode) {
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  std::vector<std::string> insertTexts{""};
-  BufferOperation bufOp{cursors, insertTexts, BO_INSERT};
+  std::string insertText{""};
+  std::vector<std::string> insertTexts{};
+  BufOpType bot = BO_INSERT;
   switch (keycode) {
     case BACKSPACE:
-      bufOp.opType = BO_BACKSPACE;
+      bot = BO_BACKSPACE;
       break;
     case DELETE:
-      bufOp.opType = BO_DELETE;
-      break;
-    case CARRIAGE_RETURN:
-      bufOp.insertTexts[0].append(1, '\n');
-      break;
-    case TAB:
-      bufOp.insertTexts[0].append(1, '\t');
+      bot = BO_DELETE;
       break;
     case CTRL_UP:
-      bufOp.opType = BO_SLIDE_UP;
+      bot = BO_SLIDE_UP;
       break;
     case CTRL_DOWN:
-      bufOp.opType = BO_SLIDE_DOWN;
+      bot = BO_SLIDE_DOWN;
+      break;
+    case CARRIAGE_RETURN:
+      insertText.append(1, '\n');
+      break;
+    case TAB:
+      insertText.append(1, '\t');
       break;
     default:
-      bufOp.insertTexts[0].append(1, keycode);
+      insertText.append(1, keycode);
       break;
   }
+  insertTexts.insert(insertTexts.begin(), cursors.size(), insertText);
+  BufferOperation bufOp{bot, cursors, insertTexts};
   doBufferOperation(bufOp);
   cursors = bufOp.oCursors;
   return bufOp;
@@ -62,28 +59,33 @@ void EditBuffer::undoBufferOperation(const BufferOperation& bufOp) {
       break;
   }
 }
+
+BufferCursor EditBuffer::selectPrecedingText(const std::string& text,
+                                             BufferCursor endCursor) {
+  int numLines{}, firstLineLength{};
+  for (size_t i = 0; i < text.size(); i++) {
+    if (text[i] == '\n') {
+      numLines++;
+      continue;
+    }
+    if (numLines == 0)
+      firstLineLength++;
+  }
+  int sRow = endCursor.getRow() - numLines;
+  int sCol{};
+  if (numLines == 0) {
+    sCol = endCursor.getCol() - firstLineLength;
+  } else {
+    sCol = lines[sRow].size() - firstLineLength;
+  }
+  endCursor.selectSet(sCol, sRow);
+  return endCursor;
+}
+
 void EditBuffer::undoInsertText(const BufferOperation& bufOp) {
   for (size_t i = 0; i < bufOp.insertTexts.size(); i++) {
-    const std::string& insertText = bufOp.insertTexts[i];
-    int numLines{}, firstLineLength{};
-    for (size_t j = 0; j < insertText.size(); j++) {
-      if (insertText[j] == '\n') {
-        numLines++;
-        continue;
-      }
-      if (numLines == 0)
-        firstLineLength++;
-    }
     BufferCursor insertCursor =
-        bufOp.oCursors[i];  // starting from where the cursor end up
-    int sRow = insertCursor.getRow() - numLines;
-    int sCol{};
-    if (numLines == 0) {
-      sCol = insertCursor.getCol() - firstLineLength;
-    } else {
-      sCol = lines[sRow].size() - firstLineLength;
-    }
-    insertCursor.selectSet(sCol, sRow);
+        selectPrecedingText(bufOp.insertTexts[i], bufOp.oCursors[i]);
     // remove the inserted text
     clearSelection(insertCursor);
     // add the removed text
@@ -97,13 +99,11 @@ void EditBuffer::undoClearSelection(const BufferOperation& bufOp) {
   }
 }
 void EditBuffer::undoSlideUp(const BufferOperation& bufOp) {
-  std::vector<std::string> insertTexts{""};
-  BufferOperation uBufOp{bufOp.oCursors, insertTexts, BO_SLIDE_DOWN};
+  BufferOperation uBufOp{BO_SLIDE_DOWN, bufOp.oCursors, {}};
   doBufferOperation(uBufOp);
 }
 void EditBuffer::undoSlideDown(const BufferOperation& bufOp) {
-  std::vector<std::string> insertTexts{""};
-  BufferOperation uBufOp{bufOp.oCursors, insertTexts, BO_SLIDE_UP};
+  BufferOperation uBufOp{BO_SLIDE_UP, bufOp.oCursors, {}};
   doBufferOperation(uBufOp);
 }
 void EditBuffer::loadFromFile(const std::string& filename) {
@@ -121,22 +121,22 @@ void EditBuffer::loadFromFile(const std::string& filename) {
   ifile.close();
 }
 void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
-  for (auto cursor : bufOp.iCursors) {
-    bool isSelection = cursor.getPosition() != cursor.getTailPosition();
+  for (size_t i = 0; i < bufOp.iCursors.size(); i++) {
+    BufferCursor cursor = bufOp.iCursors[i];
     std::string removedText{""};
     switch (bufOp.opType) {
       case BO_INSERT:
         removedText = clearSelection(cursor);
-        insertTextAtCursor(cursor, bufOp.insertTexts[0]);
+        insertTextAtCursor(cursor, bufOp.insertTexts[i]);
         break;
       case BO_BACKSPACE:
         removedText = clearSelection(cursor);
-        if (!isSelection)
+        if (removedText.size() == 0)
           backspaceAtCursor(cursor, removedText);
         break;
       case BO_DELETE:
         removedText = clearSelection(cursor);
-        if (!isSelection)
+        if (removedText.size() == 0)
           deleteAtCursor(cursor, removedText);
         break;
       case BO_SLIDE_UP:

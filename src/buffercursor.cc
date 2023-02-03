@@ -3,6 +3,7 @@
 
 BufferCursor::BufferCursor() {}
 BufferCursor::BufferCursor(BufferPosition& pos) : position{pos} {}
+
 void BufferCursor::moveSet(int col, int row) {
   std::cout << "moveset: " << col << ", " << row << std::endl;
   position.row = row;
@@ -14,6 +15,7 @@ void BufferCursor::selectSet(int col, int row) {
   position.row = row;
   position.col = col;
 }
+
 void BufferCursor::selectUp(const EditBuffer& buf) {
   if (buf.lines.size() == 0) {
     selectSet(0, 0);
@@ -41,8 +43,10 @@ void BufferCursor::selectDown(const EditBuffer& buf) {
     selectSet(newX, newY);
     return;
   }
-  if (newY > (int)buf.lines.size() - 1)
+  if (newY > (int)buf.lines.size() - 1) {
     newY = buf.lines.size() - 1;
+    newX = buf.lines[newY].size();
+  }
   selectSet(newX, newY);
 }
 void BufferCursor::selectLeft(const EditBuffer& buf) {
@@ -125,6 +129,7 @@ void BufferCursor::selectHome() {
 void BufferCursor::selectEnd(const EditBuffer& buf) {
   selectSet(buf.lines[position.row].size(), position.row);
 }
+
 void BufferCursor::moveUp(const EditBuffer& buf) {
   selectUp(buf);
   tailPosition = position;
