@@ -98,9 +98,18 @@ void Pane::saveBufOp(BufferOperation& bufOp) {
   opStackPosition++;
 }
 void Pane::undoLastBufOp() {
-  opStackPosition--;
-  cursors = opStack[opStackPosition].iCursors;
-  buf.undoBufferOperation(opStack[opStackPosition]);
+  if (opStackPosition > 0) {
+    opStackPosition--;
+    cursors = opStack[opStackPosition].iCursors;
+    buf.undoBufferOperation(opStack[opStackPosition]);
+  }
+}
+void Pane::redoNextBufOp() {
+  if (opStackPosition < (int)opStack.size()) {
+    buf.doBufferOperation(opStack[opStackPosition]);
+    cursors = opStack[opStackPosition].oCursors;
+    opStackPosition++;
+  }
 }
 void Pane::handleCommandKeypress(int keycode) {
   bool isHandledPress = false;
@@ -269,6 +278,10 @@ void Pane::handleTextKeypress(int keycode) {
     case CTRL_Z:
       isHandledPress = true;
       undoLastBufOp();
+      break;
+    case CTRL_Y:
+      isHandledPress = true;
+      redoNextBufOp();
       break;
     default:
       if ((keycode >= 32 && keycode <= 126) || keycode == CARRIAGE_RETURN ||

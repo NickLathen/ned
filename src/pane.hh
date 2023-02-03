@@ -29,9 +29,9 @@ class EditBuffer {
                                   int keycode);
   void undoBufferOperation(const BufferOperation& bufOp);
   void loadFromFile(const std::string& filename);
+  void doBufferOperation(BufferOperation& bufOp);
 
  private:
-  void doBufferOperation(BufferOperation& bufOp);
   void insertTextAtCursor(BufferCursor& cursor, const std::string& text);
   void backspaceAtCursor(BufferCursor& cursor, std::string& removedText);
   void deleteAtCursor(BufferCursor& cursor, std::string& removedText);
@@ -128,6 +128,7 @@ class Pane {
   void saveBufferToFile(const std::string& saveTarget) const;
   void saveBufOp(BufferOperation& bufOp);
   void undoLastBufOp();
+  void redoNextBufOp();
   void handleCommandKeypress(int keycode);
   void handleTextKeypress(int keycode);
 
