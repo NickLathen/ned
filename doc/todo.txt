@@ -19,12 +19,12 @@ IN PROGRESS
 
 
 TODO
+  multi caret editing (ctrl-d)
   mouse scroll
   mouse click text
   mouse double click text
   keybinds from file
   copy/paste
-  multi caret editing (ctrl-d)
   multi file editing (tabs)
   syntax highlighting
   compiler errors

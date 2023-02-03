@@ -311,7 +311,19 @@ void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
     bufX = buf.lines[bufY].size();
   }
   int gutterWidth = getGutterWidth();
-  int screenX = bufX - bufOffset.col + gutterWidth;
+  const std::string& line = buf.lines[bufY];
+  int lIndex = 0;
+  int screenX = 0;
+  while (lIndex < bufX) {
+    if (line[lIndex] != '\t') {
+      screenX += 1;
+    } else {
+      int tabWidth = TABSTOPWIDTH - (screenX % TABSTOPWIDTH);
+      screenX += tabWidth;
+    }
+    lIndex++;
+  }
+  screenX += gutterWidth - bufOffset.col;
   int screenY = bufY - bufOffset.row;
   if (screenX < xPad + gutterWidth) {
     bufOffset.col = std::max(bufX - xPad, 0);
@@ -327,7 +339,7 @@ void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
 void Pane::adjustOffset() {
   if (cursors.size() == 0)
     return;
-  adjustOffsetToCursor(cursors[0]);
+  adjustOffsetToCursor(getLeadCursor());
 }
 
 void Pane::drawBlankLine(int row, int maxX, PALETTES color) const {
@@ -389,8 +401,9 @@ void Pane::drawLine(int lineNumber, int startCol, int sz) const {
   }
 }
 void Pane::drawInfoRow(int maxX, int maxY) const {
-  int cursorRow = cursors[0].getRow();
-  int cursorCol = cursors[0].getCol();
+  BufferCursor leadCursor = getLeadCursor();
+  int cursorRow = leadCursor.getRow();
+  int cursorCol = leadCursor.getCol();
   const char* filename_cstr = filename.c_str();
   int infoSz = std::snprintf(nullptr, 0, "%s (%d, %d)", filename_cstr,
                              cursorRow, cursorCol) +
@@ -468,23 +481,22 @@ void Pane::drawSingleCursor(const BufferCursor& cursor, int gutterWidth) const {
   if (bufX > (int)buf.lines[bufY].size()) {
     bufX = buf.lines[bufY].size();
   }
-  int distance = 0;
-  int cursorDistance = -1;
-  for (int i = 0; i < (int)buf.lines[bufY].size(); i++) {
-    if (i == bufX)
-      cursorDistance = distance;
-    if (cursorDistance >= 0)
-      break;
-    if (buf.lines[bufY][i] == '\t') {
-      int tabWidth = TABSTOPWIDTH - (distance % TABSTOPWIDTH);
-      distance += tabWidth;
+  const std::string& line = buf.lines[bufY];
+  int lIndex = 0;
+  int screenX = 0;
+  while (lIndex < bufX) {
+    if (line[lIndex] != '\t') {
+      screenX += 1;
     } else {
-      distance += 1;
+      int tabWidth = TABSTOPWIDTH - (screenX % TABSTOPWIDTH);
+      screenX += tabWidth;
     }
+    int screenPos = screenX + gutterWidth - bufOffset.col;
+    if (screenPos >= maxX)
+      return;  // cursor is off screen to right
+    lIndex++;
   }
-  if (cursorDistance < 0)
-    cursorDistance = distance;
-  int screenX = gutterWidth + cursorDistance;
+  screenX += gutterWidth - bufOffset.col;
   if (screenX < gutterWidth || screenX >= maxX)
     return;
   bool isSelection = cursor.getPosition() != cursor.getTailPosition();
@@ -548,7 +560,14 @@ void Pane::drawSelectionCursor(const BufferCursor& cursor) const {
       } else {
         distance += 1;
       }
+      int screenDistance = distance + gutterWidth - bufOffset.col;
+      if (screenDistance >= maxX) {
+        // if we are past the end of the screen, don't bother finding the exact
+        // distance
+        break;
+      }
     }
+
     if (endDistance == -1)
       endDistance = distance;
     if (startDistance == -1)
@@ -585,4 +604,7 @@ void Pane::erase() const {
 }
 int Pane::getGutterWidth() const {
   return getNumDigits(buf.lines.size()) + 1;
+}
+BufferCursor Pane::getLeadCursor() const {
+  return cursors[cursors.size() - 1];
 }

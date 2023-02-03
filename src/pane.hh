@@ -147,4 +147,5 @@ class Pane {
   void refresh() const;
   void erase() const;
   int getGutterWidth() const;
+  BufferCursor getLeadCursor() const;
 };
