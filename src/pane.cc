@@ -286,6 +286,9 @@ void Pane::handleTextKeypress(int keycode) {
 }
 
 void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
+  constexpr int xPad = 4;
+  constexpr int yPad = 3;
+  constexpr int infoHeight = 2;
   int maxX, maxY;
   getmaxyx(window, maxY, maxX);
   int bufX = cursor.getCol();
@@ -296,15 +299,15 @@ void Pane::adjustOffsetToCursor(const BufferCursor& cursor) {
   int gutterWidth = getGutterWidth();
   int screenX = bufX - bufOffset.col + gutterWidth;
   int screenY = bufY - bufOffset.row;
-  if (screenX < 4 + gutterWidth) {
-    bufOffset.col = std::max(bufX - 4, 0);
-  } else if (screenX >= maxX - 4) {
-    bufOffset.col = bufX - maxX + 5 + gutterWidth;
+  if (screenX < xPad + gutterWidth) {
+    bufOffset.col = std::max(bufX - xPad, 0);
+  } else if (screenX >= maxX - xPad) {
+    bufOffset.col = bufX - maxX + 1 + xPad + gutterWidth;
   }
-  if (screenY < 0) {
-    bufOffset.row = bufY;
-  } else if (screenY >= maxY - 2) {
-    bufOffset.row = bufY - maxY + 3;
+  if (screenY < yPad) {
+    bufOffset.row = std::max(0, bufY - yPad);
+  } else if (screenY >= maxY - infoHeight - yPad) {
+    bufOffset.row = bufY - maxY + yPad + infoHeight + 1;
   }
 }
 void Pane::adjustOffset() {

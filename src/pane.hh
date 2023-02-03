@@ -37,9 +37,10 @@ class EditBuffer {
   void deleteAtCursor(BufferCursor& cursor, std::string& removedText);
   void slideUpAtCursor(BufferCursor& cursor);
   void slideDownAtCursor(BufferCursor& cursor);
-  void undoInsertTextAtCursor(BufferCursor& cursor, std::string& insertText);
-  void undoBackspaceAtCursor(BufferCursor& cursor, std::string& removedText);
-  void undoDeleteAtCursor(BufferCursor& cursor, std::string& removedText);
+  void undoInsertText(const BufferOperation& bufOp);
+  void undoClearSelection(const BufferOperation& bufOp);
+  void undoSlideUp(const BufferOperation& bufOp);
+  void undoSlideDown(const BufferOperation& bufOp);
   std::string clearSelection(BufferCursor& cursor);
   std::string stringifySelection(BufferCursor& cursor);
 };
@@ -89,11 +90,11 @@ enum BufOpType {
 class BufferOperation {
  public:
   BufferOperation(const std::vector<BufferCursor>& cursors,
-                  const std::string&& text,
+                  const std::vector<std::string>& texts,
                   BufOpType ot);
-  std::vector<BufferCursor> iCursors{};
-  std::string insertText{};
   BufOpType opType{};
+  std::vector<BufferCursor> iCursors{};
+  std::vector<std::string> insertTexts{};
   std::vector<BufferCursor> oCursors{};
   std::vector<std::string> removedTexts{};
 };

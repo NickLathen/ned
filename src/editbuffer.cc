@@ -14,7 +14,8 @@ BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
   if (lines.size() == 0) {
     lines.push_back("");
   }
-  BufferOperation bufOp{cursors, "", BO_INSERT};
+  std::vector<std::string> insertTexts{""};
+  BufferOperation bufOp{cursors, insertTexts, BO_INSERT};
   switch (keycode) {
     case BACKSPACE:
       bufOp.opType = BO_BACKSPACE;
@@ -23,10 +24,10 @@ BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
       bufOp.opType = BO_DELETE;
       break;
     case CARRIAGE_RETURN:
-      bufOp.insertText.append(1, '\n');
+      bufOp.insertTexts[0].append(1, '\n');
       break;
     case TAB:
-      bufOp.insertText.append(1, '\t');
+      bufOp.insertTexts[0].append(1, '\t');
       break;
     case CTRL_UP:
       bufOp.opType = BO_SLIDE_UP;
@@ -35,7 +36,7 @@ BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
       bufOp.opType = BO_SLIDE_DOWN;
       break;
     default:
-      bufOp.insertText.append(1, keycode);
+      bufOp.insertTexts[0].append(1, keycode);
       break;
   }
   doBufferOperation(bufOp);
@@ -43,21 +44,66 @@ BufferOperation EditBuffer::insertAtCursors(std::vector<BufferCursor>& cursors,
   return bufOp;
 }
 void EditBuffer::undoBufferOperation(const BufferOperation& bufOp) {
-  BufferOperation uBufOp{bufOp.oCursors, "", BO_INSERT};
   switch (bufOp.opType) {
     case BO_INSERT:
-      return;
+      undoInsertText(bufOp);
+      break;
     case BO_BACKSPACE:
-      return;
+      undoClearSelection(bufOp);
+      break;
     case BO_DELETE:
-      return;
+      undoClearSelection(bufOp);
+      break;
     case BO_SLIDE_UP:
-      uBufOp.opType = BO_SLIDE_DOWN;
+      undoSlideUp(bufOp);
       break;
     case BO_SLIDE_DOWN:
-      uBufOp.opType = BO_SLIDE_UP;
+      undoSlideDown(bufOp);
       break;
   }
+}
+void EditBuffer::undoInsertText(const BufferOperation& bufOp) {
+  for (size_t i = 0; i < bufOp.insertTexts.size(); i++) {
+    const std::string& insertText = bufOp.insertTexts[i];
+    int numLines{}, firstLineLength{};
+    for (size_t j = 0; j < insertText.size(); j++) {
+      if (insertText[j] == '\n') {
+        numLines++;
+        continue;
+      }
+      if (numLines == 0)
+        firstLineLength++;
+    }
+    BufferCursor insertCursor =
+        bufOp.oCursors[i];  // starting from where the cursor end up
+    int sRow = insertCursor.getRow() - numLines;
+    int sCol{};
+    if (numLines == 0) {
+      sCol = insertCursor.getCol() - firstLineLength;
+    } else {
+      sCol = lines[sRow].size() - firstLineLength;
+    }
+    insertCursor.selectSet(sCol, sRow);
+    // remove the inserted text
+    clearSelection(insertCursor);
+    // add the removed text
+    insertTextAtCursor(insertCursor, bufOp.removedTexts[i]);
+  }
+}
+void EditBuffer::undoClearSelection(const BufferOperation& bufOp) {
+  for (size_t i = 0; i < bufOp.removedTexts.size(); i++) {
+    BufferCursor insertCursor = bufOp.oCursors[i];
+    insertTextAtCursor(insertCursor, bufOp.removedTexts[i]);
+  }
+}
+void EditBuffer::undoSlideUp(const BufferOperation& bufOp) {
+  std::vector<std::string> insertTexts{""};
+  BufferOperation uBufOp{bufOp.oCursors, insertTexts, BO_SLIDE_DOWN};
+  doBufferOperation(uBufOp);
+}
+void EditBuffer::undoSlideDown(const BufferOperation& bufOp) {
+  std::vector<std::string> insertTexts{""};
+  BufferOperation uBufOp{bufOp.oCursors, insertTexts, BO_SLIDE_UP};
   doBufferOperation(uBufOp);
 }
 void EditBuffer::loadFromFile(const std::string& filename) {
@@ -81,7 +127,7 @@ void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
     switch (bufOp.opType) {
       case BO_INSERT:
         removedText = clearSelection(cursor);
-        insertTextAtCursor(cursor, bufOp.insertText);
+        insertTextAtCursor(cursor, bufOp.insertTexts[0]);
         break;
       case BO_BACKSPACE:
         removedText = clearSelection(cursor);
@@ -104,7 +150,6 @@ void EditBuffer::doBufferOperation(BufferOperation& bufOp) {
     bufOp.removedTexts.push_back(removedText);
   }
 }
-
 void EditBuffer::slideUpAtCursor(BufferCursor& cursor) {
   BufferPosition a = cursor.getPosition();
   BufferPosition b = cursor.getTailPosition();
@@ -233,7 +278,6 @@ std::string EditBuffer::clearSelection(BufferCursor& cursor) {
   cursor.moveSet(start.col, start.row);
   return removedText;
 }
-
 std::string EditBuffer::stringifySelection(BufferCursor& cursor) {
   std::string result{""};
   BufferPosition a = cursor.getPosition();
