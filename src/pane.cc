@@ -21,7 +21,7 @@ int getNumDigits(int num) {
 }
 
 enum PaneFocus { PF_TEXT, PF_COMMAND };
-enum Command { OPEN, SAVE };
+enum Command { OPEN, SAVE, FIND };
 
 Pane::Pane(WINDOW* window) : paneFocus{PF_TEXT}, window{window} {}
 
@@ -72,6 +72,14 @@ void Pane::initiateOpenCommand() {
   commandCursorPosition = 0;
   redraw();
 }
+void Pane::initiateFindCommand() {
+  paneFocus = PF_COMMAND;
+  command = FIND;
+  commandPrompt = "Find: ";
+  userCommandArgs = "";
+  commandCursorPosition = 0;
+  redraw();
+}
 void Pane::saveBufferToFile(const std::string& saveTarget) const {
   std::ofstream saveFile{"ned.tmp", std::ios_base::trunc | std::ios_base::out};
   for (size_t line = 0; line < buf.lines.size(); line++) {
@@ -86,6 +94,21 @@ void Pane::saveBufferToFile(const std::string& saveTarget) const {
   std::rename(saveTarget.c_str(), "ned.tmp.bak");
   std::rename("ned.tmp", saveTarget.c_str());
   std::remove("ned.tmp.bak");
+}
+void Pane::handleSearch() {
+  if (searchResults.isValid && searchResults.results.size() > 0) {
+    // if we already have results, increment the index
+    searchResults.index += 1;
+    searchResults.index %= searchResults.results.size();
+  } else {
+    searchResults.results = getMatches(userCommandArgs);
+    searchResults.index = 0;
+    searchResults.isValid = true;
+  }
+  if (searchResults.results.size() > 0) {
+    cursors.clear();
+    cursors.push_back(searchResults.results[searchResults.index]);
+  }
 }
 void Pane::saveBufOp(BufferOperation& bufOp) {
   if (opStackPosition < (int)opStack.size()) {
@@ -130,6 +153,9 @@ void Pane::handleCommandKeypress(int keycode) {
           commandPrompt = "Loaded File";
           userCommandArgs = "";
           paneFocus = PF_TEXT;
+          break;
+        case FIND:
+          handleSearch();
           break;
       }
       break;
@@ -179,6 +205,9 @@ void Pane::handleTextKeypress(int keycode) {
       return;
     case CTRL_O:
       initiateOpenCommand();
+      return;
+    case CTRL_D:
+      initiateFindCommand();
       return;
     case ARROW_UP:
       isHandledPress = true;
@@ -594,6 +623,23 @@ void Pane::drawCursors() const {
     }
     drawSingleCursor(cursor, gutterWidth);
   }
+}
+
+std::vector<BufferCursor> Pane::getMatches(const std::string& query) const {
+  std::vector<BufferCursor> result{};
+  for (size_t row = 0; row < buf.lines.size(); row++) {
+    const std::string& line = buf.lines[row];
+    size_t start = 0;
+    size_t match = 0;
+    while ((match = line.find(query, start)) != std::string::npos) {
+      BufferCursor bc{};
+      start = match + query.size();
+      bc.moveSet(match, row);
+      bc.selectSet(start, row);
+      result.push_back(bc);
+    }
+  }
+  return result;
 }
 
 void Pane::refresh() const {

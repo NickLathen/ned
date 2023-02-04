@@ -8,6 +8,12 @@ enum PALETTES { N_TEXT = 1, N_GUTTER, N_INFO, N_COMMAND, N_HIGHLIGHT };
 class BufferCursor;
 class BufferOperation;
 
+struct SearchResults {
+  bool isValid{false};
+  size_t index{0};
+  std::vector<BufferCursor> results{};
+};
+
 // points to a specific character in a buffer
 struct BufferPosition {
   size_t row{}, col{};
@@ -121,9 +127,12 @@ class Pane {
   BufferPosition bufOffset{};
   std::vector<BufferCursor> cursors{BufferCursor{}};
   std::vector<BufferOperation> opStack{};
+  SearchResults searchResults{};
   void initiateSaveCommand();
   void initiateOpenCommand();
+  void initiateFindCommand();
   void saveBufferToFile(const std::string& saveTarget) const;
+  void handleSearch();
   void saveBufOp(BufferOperation& bufOp);
   void undoLastBufOp();
   void redoNextBufOp();
@@ -144,6 +153,7 @@ class Pane {
   void drawSelectionCursor(const BufferCursor& cursor) const;
   void drawCursors() const;
 
+  std::vector<BufferCursor> getMatches(const std::string& query) const;
   void refresh() const;
   void erase() const;
   int getGutterWidth() const;

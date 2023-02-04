@@ -5,6 +5,7 @@
 #include <iostream>
 #include "const.hh"
 #include "pane.hh"
+//hello world
 
 bool quitNed = false;
 std::streambuf* coutBackup = nullptr;
@@ -36,6 +37,35 @@ void mainLoop(Pane& pane) {
   pane.handleKeypress(keycode);
 }
 
+#define RGB_TUPLE(HEX) (HEX >> 16) & (0xFF), (HEX >> 8) & (0xFF), (HEX & 0xFF)
+void setupColors() {
+  start_color();
+  enum CCOLORS {
+    seashell = 100,
+    pewter,
+    gray,
+    ivory,
+    lightwhite,
+    midgray,
+    darkgray,
+    lightgray,
+  };
+  init_color(seashell, RGB_TUPLE(0xE7D2CC));
+  init_color(pewter, RGB_TUPLE(0xB9B7BD));
+  init_color(gray, RGB_TUPLE(0x868B8E));
+  init_color(ivory, RGB_TUPLE(0xF4EAE6));
+  init_color(lightwhite, RGB_TUPLE(0xF3F5F9));
+  init_color(midgray, RGB_TUPLE(0x746C70));
+  init_color(darkgray, RGB_TUPLE(0x4E4F50));
+  init_color(lightgray, RGB_TUPLE(0xEAEFF2));
+  init_pair(N_TEXT, 15, darkgray);
+  init_pair(N_GUTTER, lightwhite, gray);
+  init_pair(N_INFO, darkgray, lightwhite);
+  init_pair(N_COMMAND, 15, darkgray);
+  init_pair(N_HIGHLIGHT, 15, 39);
+}
+#undef RGB_TUPLE
+
 int main(int argc, char** argv) {
   chdir(toDirectory(argv[0]).c_str());
 
@@ -48,12 +78,7 @@ int main(int argc, char** argv) {
 
   // setup ncurses
   initscr();
-  start_color();
-  init_pair(N_TEXT, 15, 234);
-  init_pair(N_GUTTER, 247, 236);
-  init_pair(N_INFO, 0, 15);
-  init_pair(N_COMMAND, 15, 234);
-  init_pair(N_HIGHLIGHT, 15, 39);
+  setupColors();
   WINDOW* textPane = newwin(0, 0, 0, 0);
   std::cout << "LINES=" << LINES << std::endl;
   std::cout << "COLS=" << COLS << std::endl;

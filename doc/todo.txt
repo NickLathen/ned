@@ -16,7 +16,9 @@ DONE
 
 
 IN PROGRESS
-
+  find/find next
+    1. press ctrl-f
+      starts find command: find command 
 
 TODO
   multi caret editing (ctrl-d)
